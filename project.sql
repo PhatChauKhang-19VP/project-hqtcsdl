@@ -14,7 +14,8 @@ go
 create table  LOGIN_INFOS (
     username varchar(50) primary key not null,
     password varchar(512) not null,
-    RID varchar(10) not null
+    RID varchar(10) not null,
+	status_ int not null -- status_ in range [0,2]. 0: pending, 1: active, 2: inactive
 );
 go 
 
@@ -35,8 +36,7 @@ create table PARTNERS (
 	product_type_id varchar(10) not null,
 	address_line nvarchar(100) not null,
 	phone char(10) not null,
-	mail varchar(50) not null,
-	RID varchar(10) not null
+	mail varchar(50) not null
 );
 go
 
@@ -94,7 +94,6 @@ go
 create table PRODUCT_IN_BRANCHES (
 	PBID varchar(10) not null,
 	PID varchar(10) not null,
-
 	primary key(PBID, PID)
 )
 go
@@ -109,7 +108,6 @@ create table ORDERS_DETAILS (
 	order_id varchar(10) not null,
 	username varchar(50) not null,
 	PID varchar(10) not null,
-
 	primary key (order_id, username, PID)
 )
 go
@@ -122,7 +120,6 @@ create table CUSTOMERS (
 	district nvarchar(20) not null,
 	address_line nvarchar(50) not null,
 	mail varchar(50) not null,
-	RID varchar(10) not null
 )
 go
 
@@ -135,7 +132,6 @@ create table DRIVERS (
 	address_line nvarchar(100) not null,
 	area nvarchar(50) not null,
 	mail varchar(50) not null,
-	RID varchar(10) not null,
 	BID varchar(10) not null
 )
 go
@@ -143,15 +139,14 @@ go
 create table EMPLOYEES (
 	username varchar(50) primary key,
 	name_ nvarchar(50) not null,
-	mail nvarchar(50) not null,
-	RID varchar(10) not null,
+	mail nvarchar(50) not null
 )
 go
 
 create table ADMINS (
 	username varchar(50) primary key,
 	name_ nvarchar(50) not null,
-	RID varchar(10) not null
+	
 )
 go
 
@@ -187,11 +182,7 @@ go
 
 -- PARTNERS
 alter table PARTNERS
-	add foreign key (username) references LOGIN_INFOS(USERNAME);
-go
-
-alter table PARTNERS
-	add foreign key (RID) references ROLES(RID);
+	add foreign key (username) references LOGIN_INFOS(username);
 go
 
 alter table PARTNERS
@@ -259,17 +250,9 @@ alter table CUSTOMERS
 	add foreign key (username) references LOGIN_INFOS(username)
 go
 
-alter table CUSTOMERS
-	add foreign key (RID) references ROLES(RID);
-go
-
 -- DRIVERS
 alter table DRIVERS
 	add foreign key (username) references LOGIN_INFOS(username)
-go
-
-alter table DRIVERS
-	add foreign key (RID) references ROLES(RID);
 go
 
 alter table DRIVERS
@@ -281,17 +264,9 @@ alter table EMPLOYEES
 	add foreign key (username) references LOGIN_INFOS(username)
 go
 
-alter table EMPLOYEES
-	add foreign key (RID) references ROLES(RID);
-go
-
 -- ADMINS
 alter table ADMINS
 	add foreign key (username) references LOGIN_INFOS(username)
-go
-
-alter table ADMINS
-	add foreign key (RID) references ROLES(RID);
 go
 
 -- DRIVER_REGISTRATIONS
