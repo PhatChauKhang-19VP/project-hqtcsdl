@@ -23,7 +23,7 @@ create table dbo.PARTNERS (
 	order_number int not null,
 	product_type_id varchar(10) not null,
 	address_line nvarchar(50) not null,
-	phone char(10) not null,
+	phone varchar(10) not null,
 	mail varchar(50) not null
 );
 go
@@ -98,7 +98,8 @@ create table dbo.ORDERS (
 	delivery_district nvarchar(20) not null,
 	delivery_adsress_line nvarchar(50) not null,
 	delivery_status varchar(20) not null,
-	paid_status varchar(20) not null
+	paid_status varchar(20) not null,
+	price float not null
 )
 go
 
@@ -158,7 +159,8 @@ create table dbo.DRIVER_REGISTRATIONS (
 	VIN char(17) primary key,
 	driver_username varchar(50) not null,
 	fee float not null,
-	status varchar(20) not null
+	registration_status varchar(20) not null,
+	paid_fee_status varchar(20) not null
 )
 go
 
@@ -280,7 +282,53 @@ alter table dbo.DRIVER_HISTORIES
 	add foreign key (order_id) references dbo.ORDERS(order_id);
 go
 
-	-- FIRST INIT WITH 2 PRODUCT_TYPES
+/* ___________ ADD TABLE CHECK ___________ */
+alter table dbo.LOGIN_INFOS
+	add check (RID = 'PARTNER' or RID = 'ADMIN' OR RID = 'EMPLOYEE' OR RID = 'CUSTOMER' OR RID = 'DRIVER')
+go
+
+alter table dbo.LOGIN_INFOS
+	add check (status = 'PENDING' or status = 'ACTIVE' or status = 'INACTIVE')
+go
+
+alter table dbo.PARTNER_REGISTRATIONS
+	add check (status = 'PENDING' or status = 'ACCEPTED' or status = 'NOTACCEPTED')
+go
+
+alter table dbo.DRIVER_REGISTRATIONS
+	add check (registration_status = 'PENDING' or registration_status = 'ACCEPTED' or registration_status = 'NOTACCEPTED')
+go
+
+alter table dbo.DRIVER_REGISTRATIONS
+	add check (paid_fee_status = 'PENDING' or paid_fee_status = 'ACCEPTED' or paid_fee_status = 'NOTACCEPTED')
+go
+
+alter table dbo.ORDERS
+	add check (delivery_status = 'PENDING' or delivery_status = 'DELIVERING' or delivery_status = 'DELIVERIED')
+go
+
+alter table dbo.ORDERS
+	add constraint CHK_table_orders_check_paid_status check (paid_status = 'PAID' or paid_status = 'NOTPAID')
+go
+
+alter table dbo.ORDERS
+	add check (price > 0)
+go
+
+alter table dbo.PRODUCTS
+	add check (price > 0)
+
+
+alter table dbo.CONTRACTS
+	add check (commission >= 0 and commission <= 1)
+go
+
+---- phone validation
+--alter table dbo.PARTNERS
+--	add constraint CHK_phone_validation_check check (phone like '0(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])[0-9]{7}')
+--go
+
+-- FIRST INIT WITH 2 PRODUCT_TYPES
 insert into dbo.PRODUCT_TYPES
 values
 	('PTYPE001', 'FOOD'),

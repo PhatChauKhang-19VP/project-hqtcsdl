@@ -18,7 +18,7 @@ go
 EXECUTE AS USER = '_partner';
 -- test đối tác đăng kí thông tin
 exec dbo.usp_partner_registation
-	@username = 'phatnm.partner1',
+	@username = 'phatnm.test',
 	@password = 'pn12345',
 	@name = N'Phát Partner1',
 	@representative_name = N'Ngô Minh Phát1',
@@ -28,7 +28,7 @@ exec dbo.usp_partner_registation
 	@order_number = 100,
 	@product_type_id = 'PTYPE001',
 	@address_line = N'319A, ấp Tân Lộc A',
-	@phone = '0704921215',
+	@phone = '07aa',
 	@mail = 'nmphat.partner3@mail.com';
 go
 
