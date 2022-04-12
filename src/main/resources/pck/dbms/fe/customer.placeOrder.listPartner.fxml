@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0"
+            prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="pck.dbms.fe.customer.placeOrder.listPartner.Controller">
+    <top>
+        <Pane prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #A8ACFF;" BorderPane.alignment="CENTER">
+            <children>
+                <Label layoutX="310.0" layoutY="12.0" text="Bán hàng Online">
+                    <font>
+                        <Font name="Arial" size="24.0"/>
+                    </font>
+                </Label>
+                <ImageView fx:id="imgVBack" fitHeight="30.0" fitWidth="30.0" layoutX="5.0" layoutY="10.0"
+                           pickOnBounds="true" preserveRatio="true">
+                    <image>
+                        <Image url="https://res.cloudinary.com/phatchaukhang/image/upload/v1649554973/HQTCSDL/Icon/back_ggwjrr.png"/>
+                    </image>
+                </ImageView>
+                <ImageView fx:id="imgVLogout" fitHeight="30.0" fitWidth="30.0" layoutX="745.0" layoutY="10.0"
+                           pickOnBounds="true" preserveRatio="true">
+                    <image>
+                        <Image url="https://res.cloudinary.com/phatchaukhang/image/upload/v1649554973/HQTCSDL/Icon/logout_rshuns.png"/>
+                    </image>
+                </ImageView>
+            </children>
+        </Pane>
+    </top>
+    <bottom>
+        <Pane prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #A8ACFF;" BorderPane.alignment="CENTER"/>
+    </bottom>
+    <center>
+        <Pane prefHeight="600.0" prefWidth="800.0" BorderPane.alignment="CENTER">
+            <children>
+                <TableView fx:id="tableViewPartner" layoutY="50.0" prefHeight="450.0" prefWidth="800.0">
+                    <columns>
+                        <TableColumn fx:id="colNO" maxWidth="30.0" prefWidth="30.0" text="STT"/>
+                        <TableColumn fx:id="colName" maxWidth="200.0" minWidth="100.0" prefWidth="100.0"
+                                     resizable="false" text="Tên"/>
+                        <TableColumn minWidth="50.0" prefWidth="75.0" text="Loại SP" fx:id="colType"/>
+                        <TableColumn fx:id="colRepName" maxWidth="200.0" minWidth="100.0" prefWidth="150.0"
+                                     resizable="false" text="Người đại diện"/>
+                        <TableColumn fx:id="colAddr" maxWidth="300.0" minWidth="150.0" prefWidth="150.0"
+                                     resizable="false" text="Địa chỉ"/>
+                        <TableColumn fx:id="colPhone" maxWidth="100.0" minWidth="70.0" prefWidth="100.0"
+                                     resizable="false" text="SĐT"/>
+                        <TableColumn fx:id="colMail" maxWidth="200.0" minWidth="100.0" prefWidth="130.0" text="Mail"/>
+                        <TableColumn fx:id="colBtn" prefWidth="70.0" resizable="false"/>
+                    </columns>
+                </TableView>
+            </children>
+        </Pane>
+    </center>
+</BorderPane>
