@@ -1,25 +1,25 @@
 package pck.dbms.be.admin;
 
-import pck.dbms.be.user.Login;
+import pck.dbms.be.user.LoginInfo;
 
 public class Admin {
-    private Login login;
+    private LoginInfo loginInfo;
     private String name;
 
     public Admin() {
     }
 
-    public Admin(Login login, String name) {
-        this.login = login;
+    public Admin(LoginInfo loginInfo, String name) {
+        this.loginInfo = loginInfo;
         this.name = name;
     }
 
-    public Login getLogin() {
-        return login;
+    public LoginInfo getLogin() {
+        return loginInfo;
     }
 
-    public void setLogin(Login login) {
-        this.login = login;
+    public void setLogin(LoginInfo loginInfo) {
+        this.loginInfo = loginInfo;
     }
 
     public String getName() {

@@ -1,14 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="pck.dbms.fe.customer.placeOrder.listProduct.cartDetail.Controller"
-            prefHeight="400.0" prefWidth="600.0">
-
-</AnchorPane>
+<?import javafx.scene.text.*?>
+<BorderPane prefHeight="580.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="pck.dbms.fe.customer.placeOrder.listProduct.cartDetail.Controller">
+    <top>
+        <Pane prefHeight="40.0" prefWidth="400.0" BorderPane.alignment="CENTER">
+            <children>
+                <Label alignment="CENTER" prefHeight="40.0" prefWidth="400.0" style="-fx-background-color: #A8ACFF;"
+                       text="Chi tiết giỏ hàng">
+                    <font>
+                        <Font name="Arial" size="24.0"/>
+                    </font>
+                </Label>
+            </children>
+        </Pane>
+    </top>
+    <center>
+        <Pane prefHeight="530.0" prefWidth="400.0" BorderPane.alignment="CENTER">
+            <children>
+                <Label fx:id="labelCusName" layoutX="10.0" layoutY="10.0" prefHeight="20.0" prefWidth="390.0"
+                       text="Tên khách hàng: Ngô Minh Phát">
+                    <font>
+                        <Font name="Arial" size="14.0"/>
+                    </font>
+                </Label>
+                <Label fx:id="labelCusAddr" layoutX="10.0" layoutY="40.0" prefHeight="40.0" prefWidth="390.0"
+                       text="Địa chỉ: 319A Tân Lộc A, xã Tân Dương, huyện Lai Vung, tỉnh Đồng Tháp"
+                       textAlignment="JUSTIFY" wrapText="true">
+                    <font>
+                        <Font name="Arial" size="14.0"/>
+                    </font>
+                </Label>
+                <Label alignment="CENTER" layoutY="80.0" prefHeight="40.0" prefWidth="400.0" text="Danh sách sản phẩm"
+                       textAlignment="CENTER" wrapText="true">
+                    <font>
+                        <Font name="Arial Bold" size="18.0"/>
+                    </font>
+                </Label>
+                <ScrollPane layoutY="120.0" prefHeight="300.0" prefWidth="400.0" style="-fx-background-color: #123456;">
+                    <content>
+                        <GridPane fx:id="gridPaneCartDetails" alignment="CENTER" gridLinesVisible="true">
+                            <columnConstraints>
+                                <ColumnConstraints/>
+                                <ColumnConstraints/>
+                            </columnConstraints>
+                            <rowConstraints>
+                                <RowConstraints/>
+                                <RowConstraints/>
+                            </rowConstraints>
+                        </GridPane>
+                    </content>
+                </ScrollPane>
+                <ComboBox fx:id="comboBoxPaymentMethod" layoutX="250.0" layoutY="430.0" prefHeight="30.0"
+                          prefWidth="130.0" promptText="Chọn"/>
+                <Label layoutX="10.0" layoutY="430.0" prefHeight="30.0" prefWidth="220.0"
+                       text="Chọn phương thúc thanh toán: ">
+                    <font>
+                        <Font size="14.0"/>
+                    </font>
+                </Label>
+                <Label layoutX="10.0" layoutY="475.0" prefHeight="20.0" prefWidth="100.0" text="Thành tiền:">
+                    <font>
+                        <Font size="14.0"/>
+                    </font>
+                </Label>
+                <Label fx:id="labelTotal" layoutX="110.0" layoutY="475.0" prefHeight="20.0" prefWidth="270.0" text="XXX"
+                       textFill="#c72d2d">
+                    <font>
+                        <Font name="System Bold" size="14.0"/>
+                    </font>
+                </Label>
+                <Button fx:id="btnPlaceOrder" layoutX="150.0" layoutY="500.0" mnemonicParsing="false" styleClass="btn"
+                        text="Đặt đơn hàng" onAction="#onBtnPlaceOrderClick">
+                    <font>
+                        <Font name="System Bold" size="14.0"/>
+                    </font>
+                </Button>
+            </children>
+        </Pane>
+    </center>
+</BorderPane>

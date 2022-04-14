@@ -14,6 +14,7 @@ module pck.dbms {
     requires AnimateFX;
 
     opens pck.dbms.be.partner to javafx.base;
+    exports pck.dbms.be.partner;
 
     opens pck.dbms.fe to javafx.fxml;
     exports pck.dbms.fe;
@@ -41,4 +42,10 @@ module pck.dbms {
 
     opens pck.dbms.fe.customer.placeOrder.listProduct;
     exports pck.dbms.fe.customer.placeOrder.listProduct to javafx.fxml;
+
+    opens pck.dbms.fe.customer.placeOrder.listProduct.cartDetail;
+    exports pck.dbms.fe.customer.placeOrder.listProduct.cartDetail to javafx.fxml;
+
+    opens pck.dbms.fe.notification;
+    exports pck.dbms.fe.notification to javafx.fxml;
 }

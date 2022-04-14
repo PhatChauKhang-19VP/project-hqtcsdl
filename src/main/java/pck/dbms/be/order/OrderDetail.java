@@ -1,5 +1,6 @@
 package pck.dbms.be.order;
 
+import pck.dbms.be.cart.CartDetail;
 import pck.dbms.be.partner.PartnerBranch;
 import pck.dbms.be.product.Product;
 
@@ -12,6 +13,15 @@ public class OrderDetail {
     private double subTotal;
 
     public OrderDetail() {
+    }
+
+    public OrderDetail(CartDetail cartDetail, Order order){
+        this.order = order;
+        this.product = cartDetail.product;
+        this.partnerBranch = cartDetail.partnerBranch;
+        this.pricePerProduct = cartDetail.product.getPrice();
+        this.quantity = cartDetail.quantity;
+        this.subTotal = cartDetail.subTotal;
     }
 
     public Order getOrder() {

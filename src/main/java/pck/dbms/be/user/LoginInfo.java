@@ -1,17 +1,17 @@
 package pck.dbms.be.user;
 
-public class Login {
+public class LoginInfo {
     private String username;
     private String password;
     private ROLE role;
 
-    public Login() {
+    public LoginInfo() {
         username = "";
         password = "";
         role = ROLE.APP;
     }
 
-    public Login(String username, String password, ROLE role) {
+    public LoginInfo(String username, String password, ROLE role) {
         this.username = username;
         this.password = password;
         this.role = role;

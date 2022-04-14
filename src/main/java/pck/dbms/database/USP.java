@@ -1,5 +1,7 @@
 package pck.dbms.database;
 
+import pck.dbms.be.cart.Cart;
+import pck.dbms.be.cart.CartDetail;
 import pck.dbms.be.customer.Customer;
 import pck.dbms.be.driver.Driver;
 import pck.dbms.be.driver.DriverRegistration;
@@ -9,7 +11,7 @@ import pck.dbms.be.partner.Contract;
 import pck.dbms.be.partner.Partner;
 import pck.dbms.be.partner.PartnerBranch;
 import pck.dbms.be.product.Product;
-import pck.dbms.be.user.Login;
+import pck.dbms.be.user.LoginInfo;
 
 public class USP {
     public static final String get_provinces = "exec dbo.usp_get_provinces", get_districts = "exec dbo.usp_get_districts", get_wards = "exec dbo.usp_get_wards";
@@ -17,10 +19,10 @@ public class USP {
     public static class partner {
         public static String registration(Partner partner) {
             String query = "exec dbo.usp_partner_registation ";
-            Login login = partner.getLogin();
+            LoginInfo loginInfo = partner.getLogin();
 
-            query += "'" + login.getUsername() + "', ";
-            query += "'" + login.getPassword() + "', ";
+            query += "'" + loginInfo.getUsername() + "', ";
+            query += "'" + loginInfo.getPassword() + "', ";
             query += "N'" + partner.getName() + "', ";
             query += "N'" + partner.getRepresentativeName() + "', ";
             query += "N'" + partner.getAddress().getProvince().getCode() + "', ";
@@ -254,10 +256,10 @@ public class USP {
         public static String registration(Customer c) {
             String query = "exec dbo.usp_customer_registration ";
 
-            Login login = c.getLogin();
+            LoginInfo loginInfo = c.getLogin();
 
-            query += "'" + login.getUsername() + "', ";
-            query += "'" + login.getPassword() + "', ";
+            query += "'" + loginInfo.getUsername() + "', ";
+            query += "'" + loginInfo.getPassword() + "', ";
             query += "N'" + c.getName() + "', ";
             query += "N'" + c.getAddress().getProvince().getCode() + "', ";
             query += "N'" + c.getAddress().getDistrict().getCode() + "', ";
@@ -269,13 +271,41 @@ public class USP {
             return query;
         }
 
-        public static String getPartner(){
+        public static String getPartner() {
             return "exec usp_customer_get_partner";
         }
 
-        public static String getProducts(Partner partner){
+        public static String getProducts(Partner partner) {
 
             return "exec usp_customer_get_products '" + partner.getLogin().getUsername() + "'";
+        }
+
+        public static String addProductToCart(CartDetail cd) {
+            String query = "exec dbo.usp_customer_change_cart_detail ";
+
+            query += "'" + cd.cart.partner.getLogin().getUsername() + "', ";
+            query += "'" + cd.cart.customer.getLogin().getUsername() + "', ";
+            query += "'" + cd.product.getPID() + "', ";
+            query += "'" + cd.partnerBranch.getPBID() + "', ";
+            query += cd.quantity;
+
+            return query;
+        }
+
+        public static String getCartDetails(Cart cart){
+            String query = "exec dbo.usp_customer_get_cart_details ";
+            query += "'" + cart.partner.getLogin().getUsername() + "', ";
+            query += "'" + cart.customer.getLogin().getUsername() + "'";
+
+            return query;
+        }
+
+        public static String deleteCart(Cart cart){
+            String query = "exec dbo.usp_customer_delete_cart_details ";
+            query += "'" + cart.partner.getLogin().getUsername() + "', ";
+            query += "'" + cart.customer.getLogin().getUsername() + "'";
+
+            return query;
         }
 
         public static String createOrder(Order o) {
@@ -288,7 +318,6 @@ public class USP {
 
             return query;
         }
-
 
         public static String addProductToOrder(OrderDetail od) {
             String query = "exec dbo.usp_customer_add_product_to_order ";

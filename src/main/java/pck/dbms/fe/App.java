@@ -2,7 +2,6 @@ package pck.dbms.fe;
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.JavaFXBuilderFactory;
@@ -20,11 +19,15 @@ import javafx.stage.Stage;
 import javafx.util.Callback;
 import org.kordamp.bootstrapfx.BootstrapFX;
 import pck.dbms.be.Container;
+import pck.dbms.be.cart.Cart;
+import pck.dbms.be.cart.CartDetail;
+import pck.dbms.be.order.Order;
 import pck.dbms.be.partner.Partner;
 import pck.dbms.be.product.Product;
-import pck.dbms.be.user.Login;
+import pck.dbms.be.user.LoginInfo;
 import pck.dbms.be.user.ROLE;
 import pck.dbms.database.DatabaseCommunication;
+import pck.dbms.fe.utils.CartDetailPane;
 import pck.dbms.fe.utils.LineNumbersCellFactory;
 import pck.dbms.fe.utils.ProductAndBranchPane;
 
@@ -34,13 +37,13 @@ import java.io.IOException;
  * Main Application. This class handles navigation and user session.
  */
 public class App extends Application {
-    public static Login login;
+    public static LoginInfo loginInfo;
     private static App instance;
     private Stage stage;
     private FXMLLoader loader;
 
     public App() {
-        login = new Login();
+        loginInfo = new LoginInfo();
         instance = this;
     }
 
@@ -86,11 +89,11 @@ public class App extends Application {
     }
 
     public ROLE getUserRole() {
-        return login.getRole();
+        return loginInfo.getRole();
     }
 
     public void setUserRole(ROLE role) {
-        login.setRole(role);
+        loginInfo.setRole(role);
     }
 
     private boolean isSignInSuccess(String signInRes) {
@@ -102,10 +105,12 @@ public class App extends Application {
 
         if (isSignInSuccess(signInRes)) {
             // update new user role
-            getInstance().login.setUsername(username);
-            getInstance().login.setRole(ROLE.valueOf(signInRes));
+            App.loginInfo.setUsername(username);
+            App.loginInfo.setRole(ROLE.valueOf(signInRes));
 
-            System.out.println(login);
+            Container.customer.getLogin().setUsername(username);
+
+            System.out.println(loginInfo);
         }
 
         return signInRes;
@@ -252,7 +257,7 @@ public class App extends Application {
                 });
 
                 // get list Partner
-                DatabaseCommunication.customer.getListPartner();
+                DatabaseCommunication.customer.getListPartner(controller.partners);
 
                 TableView tableView = controller.tableViewPartner;
                 tableView.setRowFactory(param -> {
@@ -305,8 +310,8 @@ public class App extends Application {
 
                 controller.colBtn.setCellFactory(cellFactory);
 
-                for (String key : Container.partners.keySet()) {
-                    tableView.getItems().add(Container.partners.get(key));
+                for (String key : controller.partners.keySet()) {
+                    tableView.getItems().add(controller.partners.get(key));
                 }
 
             } catch (Exception ex) {
@@ -316,9 +321,13 @@ public class App extends Application {
 
         public static void gotoListProduct(Partner partner) {
             try {
+
                 getInstance().replaceSceneContent("customer.placeOrder.listProduct.fxml");
 
-                pck.dbms.fe.customer.placeOrder.listProduct.Controller controller = getInstance().loader.getController();
+                pck.dbms.fe.customer.placeOrder.listProduct.Controller
+                        controller = getInstance().loader.getController();
+
+                controller.partner = partner;
 
                 controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
                     @Override
@@ -350,12 +359,104 @@ public class App extends Application {
 
                         try {
                             Stage stageCartDetails = new Stage();
-                            FXMLLoader loader = new FXMLLoader(App.class.getResource("ModalTest.fxml"), null, new JavaFXBuilderFactory());
+                            FXMLLoader loader = new FXMLLoader(App.class.getResource("customer.placeOrder.cartDetails.fxml"), null, new JavaFXBuilderFactory());
                             Parent root = loader.load();
                             stageCartDetails.initOwner(getInstance().stage);
                             stageCartDetails.setScene(new Scene(root));
                             stageCartDetails.setTitle("Đơn hàng của bạn");
                             stageCartDetails.initModality(Modality.APPLICATION_MODAL);
+
+                            stageCartDetails.getIcons().add(new Image("https://res.cloudinary.com/phatchaukhang/image/upload/v1649255070/HQTCSDL/Icon/icon-shop_d9bmh0.png"));
+                            stageCartDetails.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+                            stageCartDetails.setResizable(false);
+                            stageCartDetails.setFullScreen(false);
+                            stageCartDetails.sizeToScene();
+
+                            //* get cart detail from server
+                            Cart cart = new Cart();
+                            cart.customer = Container.customer;
+                            cart.partner = partner;
+
+                            DatabaseCommunication.customer.getCartDetails(cart);
+
+                            pck.dbms.fe.customer.placeOrder.listProduct.cartDetail.Controller
+                                    modalCtrl = loader.getController();
+
+                            modalCtrl.cart = cart;
+                            modalCtrl.partner = controller.partner;
+                            modalCtrl.partnerBranches = controller.partnerBranches;
+                            modalCtrl.products = controller.products;
+
+                            int col = 0, row = 0;
+                            modalCtrl.gridPaneCartDetails.getChildren().clear();
+                            for (CartDetail cd : cart.cartDetails) {
+                                CartDetailPane cdp = new CartDetailPane(cd);
+
+                                Pane pTemp = cdp.get();
+
+                                GridPane.setConstraints(pTemp, col, row);
+                                row++;
+
+                                modalCtrl.gridPaneCartDetails.getChildren().add(pTemp);
+                            }
+
+                            modalCtrl.comboBoxPaymentMethod.getItems().addAll("Tiền mặt", "ZALOPAY", "MOMO");
+                            modalCtrl.comboBoxPaymentMethod.setOnAction((eCBPM) -> {
+                                Object selectedItem = modalCtrl.comboBoxPaymentMethod.getSelectionModel().getSelectedItem();
+                                modalCtrl.paymentMethod = String.valueOf(selectedItem);
+                                if (modalCtrl.paymentMethod.equals("Tiền mặt")) modalCtrl.paymentMethod = "CASH";
+                                modalCtrl.btnPlaceOrder.setDisable(false);
+                            });
+
+                            modalCtrl.labelTotal.setText(String.format("%f VNĐ", modalCtrl.cart.total));
+
+                            modalCtrl.btnPlaceOrder.setDisable(true);
+                            modalCtrl.btnPlaceOrder.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+                                @Override
+                                public void handle(MouseEvent event) {
+                                    System.out.println(getClass() + " btnPlaceOrder on click");
+                                    if (DatabaseCommunication
+                                            .customer
+                                            .createOrder(new Order(cart, modalCtrl.paymentMethod), cart)) {
+                                        System.out.println("Đặt hàng thành công");
+                                        stageCartDetails.close();
+
+                                        // show notification
+                                        try {
+                                            Stage stageNotification = new Stage();
+                                            FXMLLoader loader = new FXMLLoader(App.class.getResource("notification.fxml"), null, new JavaFXBuilderFactory());
+                                            Parent root = loader.load();
+                                            stageNotification.initOwner(getInstance().stage);
+                                            stageNotification.setScene(new Scene(root));
+                                            stageNotification.setTitle("Thông báo");
+                                            stageNotification.initModality(Modality.APPLICATION_MODAL);
+                                            stageNotification.getIcons().add(new Image("https://res.cloudinary.com/phatchaukhang/image/upload/v1649255070/HQTCSDL/Icon/icon-shop_d9bmh0.png"));
+                                            stageNotification.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+                                            stageNotification.setResizable(false);
+                                            stageNotification.setFullScreen(false);
+                                            stageNotification.sizeToScene();
+
+                                            pck.dbms.fe.notification.Controller ctrlNoti = loader.getController();
+                                            ctrlNoti.msg.setText("Đặt hàng thành công");
+                                            ctrlNoti.msg.getStyleClass().add("bg-success");
+
+                                            ctrlNoti.btnOK.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+                                                @Override
+                                                public void handle(MouseEvent mouseEvent) {
+                                                    stageNotification.close();
+                                                }
+                                            });
+
+                                            stageNotification.show();
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+
+
+                                }
+                            });
+
                             stageCartDetails.show();
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -365,16 +466,29 @@ public class App extends Application {
                 });
 
                 // load product
-                DatabaseCommunication.customer.getListProduct(partner);
+                DatabaseCommunication.customer.getListProduct(controller.partner, controller.partnerBranches, controller.products);
                 GridPane gp = controller.gridPaneProd;
 
                 int row = 0, col = 0;
-                for (String key : Container.products.keySet()) {
-                    Product p = Container.products.get(key);
+                for (String key : controller.products.keySet()) {
+                    Product p = controller.products.get(key);
 
                     if (p.getImgSrc().contains("http")) {
                         ProductAndBranchPane pp = new ProductAndBranchPane(p);
 
+                        Pane pTemp = pp.get();
+
+                        GridPane.setConstraints(pTemp, col, row);
+                        System.out.println(row + " " + col);
+                        gp.getChildren().add(pTemp);
+                        col += 1;
+                        if (col == 4) {
+                            col = 0;
+                            row += 1;
+                        }
+                    } else {
+                        p.setImgSrc("https://res.cloudinary.com/phatchaukhang/image/upload/v1649956615/HQTCSDL/product-images/product-default-list-350_nejngg.jpg");
+                        ProductAndBranchPane pp = new ProductAndBranchPane(p);
                         Pane pTemp = pp.get();
 
                         GridPane.setConstraints(pTemp, col, row);

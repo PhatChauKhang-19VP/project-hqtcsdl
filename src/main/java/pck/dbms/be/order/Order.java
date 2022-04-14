@@ -1,10 +1,12 @@
 package pck.dbms.be.order;
 
+import pck.dbms.be.cart.Cart;
+import pck.dbms.be.cart.CartDetail;
 import pck.dbms.be.customer.Customer;
 import pck.dbms.be.partner.Partner;
-import pck.dbms.be.partner.PartnerBranch;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 public class Order {
     private String orderID;
@@ -17,6 +19,32 @@ public class Order {
     private ArrayList<OrderDetail> orderDetails;
 
     public Order() {
+        partner = new Partner();
+        customer = new Customer();
+
+        orderDetails = new ArrayList<>();
+
+    }
+
+    public Order(Cart cart, String paymentMethod) {
+        int leftLimit = 97; // letter 'a'
+        int rightLimit = 122; // letter 'z'
+        int targetStringLength = 20;
+        Random random = new Random();
+
+        String generatedString = random.ints(leftLimit, rightLimit + 1)
+                .limit(targetStringLength)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+        orderID = generatedString;
+        partner = cart.partner;
+        customer = cart.customer;
+        this.paymentMethod = paymentMethod;
+
+        orderDetails = new ArrayList<>();
+        for (CartDetail cartDetail : cart.cartDetails){
+            orderDetails.add(new OrderDetail(cartDetail, this));
+        }
     }
 
     public Order(String orderID, Partner partner, Customer customer, String paymentMethod, String deliveryStatus, String paidStatus, double shippingFee, double total) {

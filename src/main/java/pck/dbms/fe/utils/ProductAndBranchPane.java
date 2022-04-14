@@ -13,8 +13,12 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.TextAlignment;
+import pck.dbms.be.Container;
+import pck.dbms.be.cart.Cart;
+import pck.dbms.be.cart.CartDetail;
 import pck.dbms.be.partner.PartnerBranch;
 import pck.dbms.be.product.Product;
+import pck.dbms.database.DatabaseCommunication;
 
 public class ProductAndBranchPane {
     private static final String iconMinusURL = "https://res.cloudinary.com/phatchaukhang/image/upload/v1649646897/HQTCSDL/Icon/minus-button_ukufql.png";
@@ -32,6 +36,8 @@ public class ProductAndBranchPane {
 //        pane.setBorder(new Border(new BorderStroke(Color.BLACK,
 //                BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 
+        TextField tq = new TextField();
+
         //img view
         ImageView productImg = new ImageView(new Image(product.getImgSrc()));
         productImg.setFitWidth(180);
@@ -39,6 +45,7 @@ public class ProductAndBranchPane {
         productImg.setLayoutX(10);
         productImg.setLayoutY(10);
         pane.getChildren().add(productImg);
+
 
         // label pb addr
         Label pbAddr = new Label("");
@@ -49,6 +56,7 @@ public class ProductAndBranchPane {
         pbAddr.setAlignment(Pos.CENTER);
         pane.getChildren().add(pbAddr);
 
+
         // label stock
         Label stock = new Label("");
         stock.setTextAlignment(TextAlignment.CENTER);
@@ -57,6 +65,7 @@ public class ProductAndBranchPane {
         stock.setLayoutY(190);
         stock.setAlignment(Pos.CENTER);
         pane.getChildren().add(stock);
+
 
         // label pro name
         Label productName = new Label(product.getName());
@@ -77,6 +86,7 @@ public class ProductAndBranchPane {
         productPrice.setLayoutY(230);
         pane.getChildren().add(productPrice);
 
+
         // pane > btnAddProd
         Button btnAddProd = new Button("Thêm sản phẩm");
         btnAddProd.setAlignment(Pos.CENTER);
@@ -86,11 +96,25 @@ public class ProductAndBranchPane {
         btnAddProd.setDisable(true);
         pane.getChildren().add(btnAddProd);
 
+
         btnAddProd.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                System.out.println(getClass() + " add prod to cart");
-                // todo: add product to cart
+                System.out.println(getClass() + " btn add prod clicked");
+
+                Cart cart = new Cart();
+                cart.partner = branchSelected.getPartner();
+                cart.customer = Container.customer;
+
+                CartDetail cartDetail = new CartDetail();
+                cartDetail.cart = cart;
+                cartDetail.product = product;
+                cartDetail.partnerBranch = branchSelected;
+                cartDetail.quantity = Integer.parseInt(tq.getText());
+
+                DatabaseCommunication
+                        .customer
+                        .addProductToCart(cartDetail);
             }
         });
 
@@ -101,7 +125,6 @@ public class ProductAndBranchPane {
         pane.getChildren().add(paneQuantity);
 
         // pq > text quantity = tq
-        TextField tq = new TextField();
         tq.setPrefSize(50, 25);
         tq.setAlignment(Pos.CENTER);
         tq.setLayoutX(75);
@@ -144,7 +167,7 @@ public class ProductAndBranchPane {
                 if (btnAddProd.isDisable()) {
                     return;
                 }
-                System.out.println(getClass() + "iMinus clicked");
+
                 // decrease quantity by 1
                 String preQuantityStr = tq.getText();
                 try {
@@ -176,7 +199,7 @@ public class ProductAndBranchPane {
                 if (btnAddProd.isDisable()) {
                     return;
                 }
-                System.out.println(getClass() + "iAdd clicked");
+
                 // increase quantity by 1
                 String preQuantityStr = tq.getText();
                 try {
@@ -204,11 +227,15 @@ public class ProductAndBranchPane {
 
             for (String key : product.inBranches.keySet()) {
                 if (selectedItem.toString().contains(product.inBranches.get(key).getFirst().getName())) {
-                    System.out.println("[KEY] " + key);
+
 
                     pbAddr.setText(product.inBranches.get(key).getFirst().getAddress().getProvince().toString());
                     stock.setText("Số lượng: " + product.inBranches.get(key).getSecond().toString());
                     btnAddProd.setDisable(false);
+
+                    branchSelected = product.inBranches.get(key).getFirst();
+
+                    return;
                 }
             }
         });
@@ -219,6 +246,7 @@ public class ProductAndBranchPane {
         comboBox.setLayoutX(10);
         comboBox.setLayoutY(150);
         pane.getChildren().add(comboBox);
+
     }
 
     public Pane get() {

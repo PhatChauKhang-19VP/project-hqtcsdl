@@ -1,30 +1,31 @@
 package pck.dbms.be.customer;
 
 import pck.dbms.be.administrativeDivision.Address;
-import pck.dbms.be.user.Login;
+import pck.dbms.be.user.LoginInfo;
 
 public class Customer {
-    private Login login;
+    private LoginInfo loginInfo;
     private String name, phone, mail;
     private Address address;
 
     public Customer() {
+        loginInfo = new LoginInfo();
     }
 
-    public Customer(Login login, String name, String phone, String mail, Address address) {
-        this.login = login;
+    public Customer(LoginInfo loginInfo, String name, String phone, String mail, Address address) {
+        this.loginInfo = loginInfo;
         this.name = name;
         this.phone = phone;
         this.mail = mail;
         this.address = address;
     }
 
-    public Login getLogin() {
-        return login;
+    public LoginInfo getLogin() {
+        return loginInfo;
     }
 
-    public void setLogin(Login login) {
-        this.login = login;
+    public void setLogin(LoginInfo loginInfo) {
+        this.loginInfo = loginInfo;
     }
 
     public String getName() {

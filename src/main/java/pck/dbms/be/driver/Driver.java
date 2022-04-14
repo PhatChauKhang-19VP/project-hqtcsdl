@@ -1,10 +1,10 @@
 package pck.dbms.be.driver;
 
 import pck.dbms.be.administrativeDivision.Address;
-import pck.dbms.be.user.Login;
+import pck.dbms.be.user.LoginInfo;
 
 public class Driver {
-    private Login login;
+    private LoginInfo loginInfo;
     private String name, NIN, phone, mail;
     private Address address;
     private Driver activeAreaCode;
@@ -13,8 +13,8 @@ public class Driver {
     public Driver() {
     }
 
-    public Driver(Login login, String name, String NIN, String phone, String mail, Address address, Driver activeAreaCode, Bank bank) {
-        this.login = login;
+    public Driver(LoginInfo loginInfo, String name, String NIN, String phone, String mail, Address address, Driver activeAreaCode, Bank bank) {
+        this.loginInfo = loginInfo;
         this.name = name;
         this.NIN = NIN;
         this.phone = phone;
@@ -24,12 +24,12 @@ public class Driver {
         this.bank = bank;
     }
 
-    public Login getLogin() {
-        return login;
+    public LoginInfo getLogin() {
+        return loginInfo;
     }
 
-    public void setLogin(Login login) {
-        this.login = login;
+    public void setLogin(LoginInfo loginInfo) {
+        this.loginInfo = loginInfo;
     }
 
     public String getName() {

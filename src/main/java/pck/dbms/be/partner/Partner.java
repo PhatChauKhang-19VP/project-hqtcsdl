@@ -1,16 +1,16 @@
 package pck.dbms.be.partner;
 
 import pck.dbms.be.administrativeDivision.Address;
-import pck.dbms.be.user.Login;
+import pck.dbms.be.user.LoginInfo;
 
 public class Partner {
-    private Login login;
+    private LoginInfo loginInfo;
     private String name, representativeName, productType, phone, mail;
     private Address address;
     private int branchNumber, orderNumber;
 
-    public Partner(Login login, String name, String representativeName, String productType, String phone, String mail, Address address, int branchNumber, int orderNumber) {
-        this.login = login;
+    public Partner(LoginInfo loginInfo, String name, String representativeName, String productType, String phone, String mail, Address address, int branchNumber, int orderNumber) {
+        this.loginInfo = loginInfo;
         this.name = name;
         this.representativeName = representativeName;
         this.productType = productType;
@@ -24,12 +24,12 @@ public class Partner {
     public Partner() {
     }
 
-    public Login getLogin() {
-        return login;
+    public LoginInfo getLogin() {
+        return loginInfo;
     }
 
-    public void setLogin(Login login) {
-        this.login = login;
+    public void setLogin(LoginInfo loginInfo) {
+        this.loginInfo = loginInfo;
     }
 
     public String getName() {

@@ -1,26 +1,26 @@
 package pck.dbms.be.employee;
 
-import pck.dbms.be.user.Login;
+import pck.dbms.be.user.LoginInfo;
 
 public class Employee {
-    private Login login;
+    private LoginInfo loginInfo;
     private String name, mail;
 
     public Employee() {
     }
 
-    public Employee(Login login, String name, String mail) {
-        this.login = login;
+    public Employee(LoginInfo loginInfo, String name, String mail) {
+        this.loginInfo = loginInfo;
         this.name = name;
         this.mail = mail;
     }
 
-    public Login getLogin() {
-        return login;
+    public LoginInfo getLogin() {
+        return loginInfo;
     }
 
-    public void setLogin(Login login) {
-        this.login = login;
+    public void setLogin(LoginInfo loginInfo) {
+        this.loginInfo = loginInfo;
     }
 
     public String getName() {

@@ -1,13 +1,15 @@
 package pck.dbms.database;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import pck.dbms.be.Container;
 import pck.dbms.be.administrativeDivision.*;
+import pck.dbms.be.cart.Cart;
+import pck.dbms.be.cart.CartDetail;
 import pck.dbms.be.order.Order;
+import pck.dbms.be.order.OrderDetail;
 import pck.dbms.be.partner.Partner;
 import pck.dbms.be.partner.PartnerBranch;
 import pck.dbms.be.product.Product;
-import pck.dbms.be.user.Login;
+import pck.dbms.be.user.LoginInfo;
 import pck.dbms.be.utils.Pair;
 
 import java.sql.*;
@@ -18,25 +20,24 @@ import java.util.Map;
 
 public class DatabaseCommunication {
     private static DatabaseCommunication instance;
-    private Pair<String, String> currLogin;
-    private String databaseName;
-    private HashMap<String, Pair<String, String>> logins;
+    private final String databaseName;
+    private final HashMap<String, Pair<String, String>> sqlLogins;
+    private Pair<String, String> currentSQLLogin;
     private Connection conn;
-    private Statement stmt;
 
     private DatabaseCommunication() {
-        logins = new HashMap<>();
+        sqlLogins = new HashMap<>();
 
-        logins.put("SA", new Pair<>("sa", "Thoai1234"));
-        logins.put("APP", new Pair<>("_app", "1"));
-        logins.put("ADMIN", new Pair<>("_admin", "1"));
-        logins.put("PARTNER", new Pair<>("_partner", "1"));
-        logins.put("CUSTOMER", new Pair<>("_customer", "1"));
-        logins.put("EMPLOYEE", new Pair<>("_employee", "1"));
-        logins.put("DRIVER", new Pair<>("_driver", "1"));
+        sqlLogins.put("SA", new Pair<>("sa", "Thoai1234"));
+        sqlLogins.put("APP", new Pair<>("_app", "1"));
+        sqlLogins.put("ADMIN", new Pair<>("_admin", "1"));
+        sqlLogins.put("PARTNER", new Pair<>("_partner", "1"));
+        sqlLogins.put("CUSTOMER", new Pair<>("_customer", "1"));
+        sqlLogins.put("EMPLOYEE", new Pair<>("_employee", "1"));
+        sqlLogins.put("DRIVER", new Pair<>("_driver", "1"));
 
-        databaseName = new String("db_19vp_delivery");
-        currLogin = logins.get("SA");
+        databaseName = "db_19vp_delivery";
+        currentSQLLogin = sqlLogins.get("SA");
     }
 
     public static DatabaseCommunication getInstance() {
@@ -54,8 +55,8 @@ public class DatabaseCommunication {
             sqlDs.setIntegratedSecurity(false);
             sqlDs.setEncrypt(false);
 
-            sqlDs.setUser(currLogin.getFirst());
-            sqlDs.setPassword(currLogin.getSecond());
+            sqlDs.setUser(currentSQLLogin.getFirst());
+            sqlDs.setPassword(currentSQLLogin.getSecond());
 
             sqlDs.setServerName("localhost");
             sqlDs.setPortNumber(1433);
@@ -81,13 +82,13 @@ public class DatabaseCommunication {
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery(sql);
 
-        List<Map<String, Object>> resultList = new ArrayList<Map<String, Object>>();
-        Map<String, Object> row = null;
+        List<Map<String, Object>> resultList = new ArrayList<>();
+        Map<String, Object> row;
         ResultSetMetaData metaData = rs.getMetaData();
-        Integer columnCount = metaData.getColumnCount();
+        int columnCount = metaData.getColumnCount();
 
         while (rs.next()) {
-            row = new HashMap<String, Object>();
+            row = new HashMap<>();
             for (int i = 1; i <= columnCount; i++) {
                 row.put(metaData.getColumnName(i), rs.getObject(i));
             }
@@ -161,9 +162,9 @@ public class DatabaseCommunication {
 
     }
 
-    public boolean partnerRegistration(Login login, Partner partner) {
+    public boolean partnerRegistration(LoginInfo loginInfo, Partner partner) {
         try {
-            this.currLogin = logins.get("PARTNER");
+            this.currentSQLLogin = sqlLogins.get("PARTNER");
 
             open();
 
@@ -181,7 +182,7 @@ public class DatabaseCommunication {
 
     public boolean partnerGetAcceptedContracts() {
         try {
-            this.currLogin = logins.get("PARTNER");
+            this.currentSQLLogin = sqlLogins.get("PARTNER");
 
             open();
 
@@ -205,8 +206,7 @@ public class DatabaseCommunication {
     public void callStoreProcedure() throws SQLException {
         open();
 
-        CallableStatement cstmt = conn.prepareCall(
-                "{call dbo.usp_partner_get_accepted_contracts(?)}");
+        CallableStatement cstmt = conn.prepareCall("{call dbo.usp_partner_get_accepted_contracts(?)}");
         cstmt.setString(1, "phatnm.partner1");
         cstmt.execute();
         ResultSet rs = cstmt.getResultSet();
@@ -260,7 +260,7 @@ public class DatabaseCommunication {
     public static class employee {
         public static boolean acceptAllContract() {
             try {
-                getInstance().currLogin = getInstance().logins.get("EMPLOYEE");
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("EMPLOYEE");
 
                 getInstance().open();
 
@@ -283,9 +283,9 @@ public class DatabaseCommunication {
     }
 
     public static class customer {
-        public static boolean getListPartner() {
+        public static boolean getListPartner(HashMap<String, Partner> partners) {
             try {
-                getInstance().currLogin = getInstance().logins.get("CUSTOMER");
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
 
                 getInstance().open();
 
@@ -299,31 +299,26 @@ public class DatabaseCommunication {
 
                 ResultSet rs = cstmt.getResultSet();
 
-                Container.partners.clear();
+                partners.clear();
 
                 while (rs.next()) {
-                    Login login = new Login();
+                    LoginInfo loginInfo = new LoginInfo();
                     Partner partner = new Partner();
 
-                    partner.setLogin(login);
+                    partner.setLogin(loginInfo);
 
-                    login.setUsername(rs.getString("username"));
+                    loginInfo.setUsername(rs.getString("username"));
                     partner.setName(rs.getString("name"));
                     partner.setProductType(rs.getString("product_type"));
                     partner.setRepresentativeName(rs.getString("representative_name"));
-                    partner.setAddress(new Address(
-                            AdministrativeDivision.getInstance().getProvinceList().get(rs.getString("address_province_code")),
-                            AdministrativeDivision.getInstance().getDistrictList().get(rs.getString("address_district_code")),
-                            AdministrativeDivision.getInstance().getWardList().get(rs.getString("address_ward_code")),
-                            rs.getString("address_line")
-                    ));
+                    partner.setAddress(new Address(AdministrativeDivision.getInstance().getProvinceList().get(rs.getString("address_province_code")), AdministrativeDivision.getInstance().getDistrictList().get(rs.getString("address_district_code")), AdministrativeDivision.getInstance().getWardList().get(rs.getString("address_ward_code")), rs.getString("address_line")));
                     partner.setPhone(rs.getString("phone"));
                     partner.setMail(rs.getString("mail"));
 
-                    Container.partners.put(partner.getLogin().getUsername(), partner);
+                    partners.put(partner.getLogin().getUsername(), partner);
                 }
 
-                System.out.println(Container.partners.size());
+                System.out.println(partners.size());
 
                 getInstance().close();
                 return true;
@@ -335,9 +330,95 @@ public class DatabaseCommunication {
             }
         }
 
-        public static boolean getListProduct(Partner partner) {
+        public static boolean addProductToCart(CartDetail c) {
             try {
-                getInstance().currLogin = getInstance().logins.get("CUSTOMER");
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
+
+                getInstance().open();
+
+                Statement statement = getInstance().conn.createStatement();
+                statement.execute(USP.customer.addProductToCart(c));
+
+                getInstance().close();
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                getInstance().close();
+                return false;
+            }
+        }
+
+        public static boolean getCartDetails(Cart cart) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
+
+                getInstance().open();
+
+                String query = USP.customer.getCartDetails(cart);
+
+                System.out.println("[GET CART DETAILS]" + query);
+
+                CallableStatement cstmt = getInstance().conn.prepareCall(query);
+
+
+                boolean isResultSet = cstmt.execute();
+
+                // CART info
+                ResultSet rs = cstmt.getResultSet();
+
+                if (!isResultSet) {
+                    System.out.println("No result set");
+                    return false;
+                }
+
+                while (rs.next()) {
+                    cart.shippingFee = rs.getFloat("shipping_fee");
+                    cart.total = rs.getFloat("total");
+                }
+
+                // CART_DETAILS
+                isResultSet = cstmt.getMoreResults();
+
+                if (!isResultSet) {
+                    System.out.println("The next result is not a ResultSet.");
+                } else {
+                    rs = cstmt.getResultSet();
+                }
+
+                while (rs.next()) {
+                    CartDetail cartDetail = new CartDetail();
+                    Product product = new Product();
+                    product.setName(rs.getString("p_name"));
+                    product.setPrice(rs.getFloat("price_per_product"));
+                    product.setImgSrc(rs.getString("img_src"));
+                    product.setPID(rs.getString("PID"));
+                    int quantity = rs.getInt("quantity");
+                    float subTotal = rs.getFloat("sub_total");
+
+                    cartDetail.cart = cart;
+                    cartDetail.product = product;
+                    cartDetail.quantity = quantity;
+                    cartDetail.subTotal = subTotal;
+                    cartDetail.partnerBranch.setPBID(rs.getString("PBID"));
+                    cartDetail.partnerBranch.setName(rs.getString("pb_name"));
+
+                    cart.cartDetails.add(cartDetail);
+
+                }
+
+                getInstance().close();
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                getInstance().close();
+
+                return false;
+            }
+        }
+
+        public static boolean getListProduct(Partner partner, HashMap<String, PartnerBranch> partnerBranches, HashMap<String, Product> products) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
 
                 getInstance().open();
 
@@ -345,10 +426,10 @@ public class DatabaseCommunication {
 
                 CallableStatement cstmt = getInstance().conn.prepareCall(USP.customer.getProducts(partner));
 
-                Boolean isResultSet = cstmt.execute();
+                boolean isResultSet = cstmt.execute();
 
                 ResultSet rs = cstmt.getResultSet();
-                Container.products.clear();
+                products.clear();
 
                 // get list product
                 while (rs.next()) {
@@ -363,7 +444,7 @@ public class DatabaseCommunication {
                     product.setPrice(rs.getFloat("price"));
                     product.setDeleted(rs.getBoolean("is_deleted"));
 
-                    Container.products.put(product.getPID(), product);
+                    products.put(product.getPID(), product);
                 }
                 rs.close();
 
@@ -375,22 +456,18 @@ public class DatabaseCommunication {
                     rs = cstmt.getResultSet();
                 }
                 // partner branches
-                Container.partnerBranches.clear();
+                partnerBranches.clear();
                 while (rs.next()) {
                     PartnerBranch pb = new PartnerBranch();
 
                     pb.setPBID(rs.getString("PBID"));
                     pb.setName(rs.getString("name"));
-                    pb.setPartner(Container.partners.get(rs.getString("username")));
-                    pb.setAddress(new Address(
-                            AdministrativeDivision.getInstance().getProvinceList().get(rs.getString("address_province_code")),
-                            AdministrativeDivision.getInstance().getDistrictList().get(rs.getString("address_district_code")),
-                            AdministrativeDivision.getInstance().getWardList().get(rs.getString("address_ward_code")),
-                            rs.getString("address_line")
-                    ));
+                    partner.getLogin().setUsername(rs.getString("username"));
+                    pb.setPartner(partner);
+                    pb.setAddress(new Address(AdministrativeDivision.getInstance().getProvinceList().get(rs.getString("address_province_code")), AdministrativeDivision.getInstance().getDistrictList().get(rs.getString("address_district_code")), AdministrativeDivision.getInstance().getWardList().get(rs.getString("address_ward_code")), rs.getString("address_line")));
                     pb.setDeleted(rs.getBoolean("is_deleted"));
 
-                    Container.partnerBranches.put(pb.getPBID(), pb);
+                    partnerBranches.put(pb.getPBID(), pb);
                 }
                 rs.close();
 
@@ -404,21 +481,47 @@ public class DatabaseCommunication {
                 // get product in Branches
 
                 while (rs.next()) {
-                    String PBID = rs.getString("PBID"),
-                            PID = rs.getString("PID");
+                    String PBID = rs.getString("PBID"), PID = rs.getString("PID");
 
-                    if (PID.equals("product23")){
+                    if (PID.equals("product23")) {
                         System.out.println(PBID);
                     }
 
                     int stock = rs.getInt("stock");
-                    Container.partnerBranches
-                            .get(PBID)
-                            .addProductToBranch(Container.products.get(PID), stock);
-                    Container.products
-                            .get(PID)
-                            .addInBranch(Container.partnerBranches.get(PBID), stock);
+                    partnerBranches.get(PBID).addProductToBranch(products.get(PID), stock);
+                    products.get(PID).addInBranch(partnerBranches.get(PBID), stock);
                 }
+
+                getInstance().close();
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                getInstance().close();
+                return false;
+            }
+        }
+
+        public static boolean createOrder(Order order, Cart cart) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
+
+                getInstance().open();
+
+                String query = USP.customer.createOrder(order);
+                System.out.println("O:" + query);
+                Statement statement = getInstance().conn.createStatement();
+                statement.execute(query);
+
+                for (OrderDetail od : order.getOrderDetails()) {
+                    query = USP.customer.addProductToOrder(od);
+                    System.out.println("OD:" + query);
+                    statement.execute(query);
+                }
+
+                query = USP.customer.deleteCart(cart);
+                System.out.println("DELETE C: " + query);
+
+                statement.execute(query);
 
                 getInstance().close();
                 return true;
@@ -431,7 +534,7 @@ public class DatabaseCommunication {
 
         public static boolean getOrdersDetail() {
             try {
-                getInstance().currLogin = getInstance().logins.get("CUSTOMER");
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
 
                 getInstance().open();
 
@@ -447,7 +550,7 @@ public class DatabaseCommunication {
 
                 ResultSet rs = cstmt.getResultSet();
 
-                // First ReulstSet object
+                // First ResultSet object
                 if (!isResultSet) {
                     System.out.println("The first result is not a ResultSet.");
                 }
