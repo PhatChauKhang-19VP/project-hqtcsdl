@@ -5,12 +5,12 @@ import java.util.HashMap;
 
 public class Contract {
     private Partner partner;
-    private String CID, TIN;
+    private String CID, TIN, status;
     private int extension;
     private LocalDateTime createdAt, expiredAt;
     private int contractTime;
     private double commission;
-    private  HashMap<String, PartnerBranch> partnerBranchList;
+    private HashMap<String, PartnerBranch> partnerBranchList;
     private boolean isExpired;
 
     public Contract() {
@@ -100,11 +100,11 @@ public class Contract {
         this.partnerBranchList = partnerBranchList;
     }
 
-    public void addPartnerBranch(PartnerBranch partnerBranch){
-        if (partnerBranchList == null){
+    public void addPartnerBranch(PartnerBranch partnerBranch) {
+        if (partnerBranchList == null) {
             partnerBranchList = new HashMap<>();
         }
-        if (!partnerBranchList.containsKey(partnerBranch.getPBID())){
+        if (!partnerBranchList.containsKey(partnerBranch.getPBID())) {
             partnerBranchList.put(partnerBranch.getPBID(), partnerBranch);
         }
     }
@@ -115,5 +115,25 @@ public class Contract {
 
     public void setExpired(boolean expired) {
         isExpired = expired;
+    }
+
+    public String getPartnerName() {
+        return partner.getName();
+    }
+
+    public String getRepName() {
+        return partner.getRepresentativeName();
+    }
+
+    public String getPartnerAddress(){
+        return partner.getAddressAsString();
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

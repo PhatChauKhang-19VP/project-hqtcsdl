@@ -7,7 +7,7 @@
 <?import javafx.scene.text.Font?>
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0"
             prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="pck.dbms.fe.partner.home.Controller">
+            fx:controller="pck.dbms.fe.partner.features.ContractsManagementController">
     <top>
         <Pane prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #A8ACFF;" BorderPane.alignment="CENTER">
             <Label layoutX="310.0" layoutY="12.0" text="Bán hàng Online">
@@ -30,22 +30,24 @@
     </bottom>
     <center>
         <Pane prefHeight="600.0" prefWidth="800.0" BorderPane.alignment="CENTER">
-            <Label alignment="CENTER" layoutY="30.0" prefWidth="800.0"
-                   style="-fx-font-family: arial; -fx-font-size: 48;" text="Đối tác"/>
-            <Pane layoutX="163.0" layoutY="187.0" prefHeight="125.0" prefWidth="450.0">
-                <Button fx:id="btnCnt" mnemonicParsing="false" onAction="#onBtnCntClick" prefHeight="50.0"
-                        prefWidth="200.0"
-                        style="-fx-font-size: 18;-fx-font-family: arial;-fx-background-color: #A8ACFF; -fx-alignment: center;"
-                        styleClass="btn" text="Quản lí Hợp đồng"/>
-                <Button fx:id="btnProd" layoutX="250.0" mnemonicParsing="false" onAction="#onBtnProdClick"
-                        prefHeight="50.0" prefWidth="200.0"
-                        style="-fx-font-size: 18;-fx-font-family: arial;-fx-background-color: #A8ACFF; -fx-alignment: center;"
-                        styleClass="btn" text="Quản lí sản phẩm"/>
-                <Button fx:id="btnOrd" layoutX="125.0" layoutY="75.0" mnemonicParsing="false"
-                        onAction="#onBtnOrdClick" prefHeight="50.0" prefWidth="200.0"
-                        style="-fx-font-size: 18;-fx-font-family: arial;-fx-background-color: #A8ACFF; -fx-alignment: center;"
-                        styleClass="btn" text="Quản lí đơn hàng"/>
-            </Pane>
+            <Label layoutX="20.0" layoutY="60.0" text="Danh sách hợp đồng"/>
+            <TableView fx:id="tableViewContractList" layoutY="100.0" prefHeight="350.0" prefWidth="800.0">
+                <columns>
+                    <TableColumn prefWidth="30.0" text="STT" fx:id="colNO"/>
+                    <TableColumn prefWidth="90.0" text="Mã hợp đồng" fx:id="colCID"/>
+                    <TableColumn prefWidth="200.0" text="Người đại diện" fx:id="colRepName"/>
+                    <TableColumn text="Ngày lập" fx:id="colCA"/>
+                    <TableColumn prefWidth="90.0" text="Ngày hết hạn" fx:id="colEA"/>
+                    <TableColumn prefWidth="85.0" text="Hoa hồng (%)" fx:id="colComm"/>
+                    <TableColumn prefWidth="70.0" text="Trạng thái" fx:id="colStat"/>
+                    <TableColumn prefWidth="70.0"/>
+                </columns>
+            </TableView>
+            <Label layoutX="20.0" layoutY="15.0" text="Thông tin đối tác">
+                <font>
+                    <Font name="System Bold" size="24.0"/>
+                </font>
+            </Label>
         </Pane>
     </center>
 </BorderPane>

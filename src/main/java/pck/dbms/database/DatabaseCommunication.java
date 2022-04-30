@@ -4,8 +4,9 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import pck.dbms.be.administrativeDivision.*;
 import pck.dbms.be.cart.Cart;
 import pck.dbms.be.cart.CartDetail;
+import pck.dbms.be.customer.Customer;
 import pck.dbms.be.order.Order;
-import pck.dbms.be.order.OrderDetail;
+import pck.dbms.be.partner.Contract;
 import pck.dbms.be.partner.Partner;
 import pck.dbms.be.partner.PartnerBranch;
 import pck.dbms.be.product.Product;
@@ -162,47 +163,6 @@ public class DatabaseCommunication {
 
     }
 
-    public boolean partnerRegistration(LoginInfo loginInfo, Partner partner) {
-        try {
-            this.currentSQLLogin = sqlLogins.get("PARTNER");
-
-            open();
-
-            PreparedStatement pstmt = conn.prepareStatement(USP.partner.registration(partner));
-            pstmt.execute();
-            close();
-
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-
-            return false;
-        }
-    }
-
-    public boolean partnerGetAcceptedContracts() {
-        try {
-            this.currentSQLLogin = sqlLogins.get("PARTNER");
-
-            open();
-
-            PreparedStatement pstmt = conn.prepareStatement("exec dbo.usp_partner_get_accepted_contracts 'phatnm.partner1'");
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                System.out.println(rs.getString("CID"));
-            }
-            close();
-
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-
-            close();
-            return false;
-        }
-    }
-
     public void callStoreProcedure() throws SQLException {
         open();
 
@@ -257,7 +217,378 @@ public class DatabaseCommunication {
         }
     }
 
+    public void testTransaction() {
+        try {
+            open();
+
+            String query = """
+                    declare @phat varchar(20) = 'Ngo Minh Phat'\n
+                    begin try
+                    	begin tran
+                    		print 'ABC'
+                                        
+                    		if '1' = '1'
+                    			throw 52000, @phat, 1
+                    	commit tran
+                    end try
+                    begin catch
+                    	declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    if (@@TRANCOUNT > 0)
+                    	rollback tran
+                    end catch         
+                    """;
+            Statement stmt = conn.createStatement();
+            stmt.execute(query);
+
+            close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+    public static class partner {
+        public static boolean partnerRegistration(LoginInfo loginInfo, Partner partner) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("PARTNER");
+
+                getInstance().open();
+
+                PreparedStatement pstmt = getInstance().conn.prepareStatement(USP.partner.registration(partner));
+                pstmt.execute();
+                getInstance().close();
+
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                getInstance().close();
+                return false;
+            }
+        }
+
+        public static boolean getOrders(Partner partner, HashMap<String, Order> orderHashMap) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("PARTNER");
+
+                getInstance().open();
+
+                Statement stmt = getInstance().conn.createStatement();
+                ResultSet rs = stmt.executeQuery(USP.partner.getOrders(partner));
+
+                while (rs.next()) {
+                    Order o = new Order();
+
+                    o.setOrderID(rs.getString("order_id"));
+
+                    Customer c = new Customer();
+                    c.setName(rs.getString("name"));
+                    c.setAddress(new Address(AdministrativeDivision.getInstance().getProvinceList().get(rs.getString("pv_code")), AdministrativeDivision.getInstance().getDistrictList().get(rs.getString("dt_code")), AdministrativeDivision.getInstance().getWardList().get(rs.getString("w_code")), rs.getString("address_line")));
+                    o.setCustomer(c);
+
+                    o.setTotal(rs.getFloat("total"));
+                    o.setDeliveryStatus(rs.getString("delivery_status"));
+                    o.setPaidStatus(rs.getString("paid_status"));
+
+                    orderHashMap.put(o.getOrderID(), o);
+                }
+                getInstance().close();
+
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                getInstance().close();
+                return false;
+            }
+        }
+
+        public static boolean getOrdersDirtyRead1Error(Partner partner, HashMap<String, Order> orderHashMap) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                Statement stmt = getInstance().conn.createStatement();
+                ResultSet rs = stmt.executeQuery(USP.partner.partnerGetOrderListDirtyRead1Error(partner));
+
+                while (rs.next()) {
+                    Order o = new Order();
+
+                    o.setOrderID(rs.getString("order_id"));
+
+                    Customer c = new Customer();
+                    c.setName(rs.getString("name"));
+                    c.setAddress(new Address(AdministrativeDivision.getInstance().getProvinceList().get(rs.getString("pv_code")), AdministrativeDivision.getInstance().getDistrictList().get(rs.getString("dt_code")), AdministrativeDivision.getInstance().getWardList().get(rs.getString("w_code")), rs.getString("address_line")));
+                    o.setCustomer(c);
+
+                    o.setTotal(rs.getFloat("total"));
+                    o.setDeliveryStatus(rs.getString("delivery_status"));
+                    o.setPaidStatus(rs.getString("paid_status"));
+
+                    orderHashMap.put(o.getOrderID(), o);
+                }
+                getInstance().close();
+
+                System.out.println("demo1 trigger");
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                getInstance().close();
+                return false;
+            }
+        }
+
+        public static boolean getOrdersDirtyRead1Fixed(Partner partner, HashMap<String, Order> orderHashMap) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                Statement stmt = getInstance().conn.createStatement();
+                ResultSet rs = stmt.executeQuery(USP.partner.partnerGetOrderListDirtyRead1Fixed(partner));
+
+                while (rs.next()) {
+                    Order o = new Order();
+
+                    o.setOrderID(rs.getString("order_id"));
+
+                    Customer c = new Customer();
+                    c.setName(rs.getString("name"));
+                    c.setAddress(new Address(AdministrativeDivision.getInstance().getProvinceList().get(rs.getString("pv_code")), AdministrativeDivision.getInstance().getDistrictList().get(rs.getString("dt_code")), AdministrativeDivision.getInstance().getWardList().get(rs.getString("w_code")), rs.getString("address_line")));
+                    o.setCustomer(c);
+
+                    o.setTotal(rs.getFloat("total"));
+                    o.setDeliveryStatus(rs.getString("delivery_status"));
+                    o.setPaidStatus(rs.getString("paid_status"));
+
+                    orderHashMap.put(o.getOrderID(), o);
+                }
+                getInstance().close();
+
+                System.out.println("demo1 trigger");
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                getInstance().close();
+                return false;
+            }
+        }
+
+        public static boolean getAcceptedContracts() {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("PARTNER");
+
+                getInstance().open();
+
+                PreparedStatement pstmt = getInstance().conn.prepareStatement("exec dbo.usp_partner_get_accepted_contracts 'phatnm.partner1'");
+                ResultSet rs = pstmt.executeQuery();
+
+                while (rs.next()) {
+                    System.out.println(rs.getString("CID"));
+
+                    Contract c = new Contract();
+                    c.setCID(rs.getString("CID"));
+                }
+                getInstance().close();
+
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                getInstance().close();
+                return false;
+            }
+        }
+
+        public static boolean getContractsDirtyRead2Error(HashMap<String, Contract> hm, String status, Partner partner){
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                String query = USP.partner.getContractDirtyRead2Error(status, partner);
+
+                Statement stmt = getInstance().conn.createStatement();
+                ResultSet rs = stmt.executeQuery(query);
+
+                hm.clear();
+                while (rs.next()) {
+                    Partner p = new Partner();
+                    p.setName(rs.getString("name"));
+                    p.setRepresentativeName(rs.getString("representative_name"));
+                    p.setAddress(new Address(AdministrativeDivision.getInstance().getProvinceList().get(rs.getString("address_province_code")), AdministrativeDivision.getInstance().getDistrictList().get(rs.getString("address_district_code")), AdministrativeDivision.getInstance().getWardList().get(rs.getString("address_ward_code")), rs.getString("address_line")));
+                    p.setBranchNumber(rs.getInt("branch_number"));
+                    p.setOrderNumber(rs.getInt("order_number"));
+                    p.setProductType(rs.getString("product_type"));
+                    p.setPhone(rs.getString("phone"));
+                    p.setMail(rs.getString("mail"));
+
+                    Contract c = new Contract();
+                    c.setPartner(p);
+                    c.setTIN(rs.getString("TIN"));
+                    c.setCID(rs.getString("CID"));
+                    c.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    c.setExpiredAt(rs.getTimestamp("expired_at").toLocalDateTime());
+                    c.setCommission(rs.getFloat("commission"));
+                    c.setStatus(rs.getString("status"));
+                    c.setExpired(rs.getBoolean("is_expired"));
+
+                    hm.put(c.getCID(), c);
+                }
+
+                getInstance().close();
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                getInstance().close();
+                return false;
+            }
+        }
+
+        public static boolean getContractsDirtyRead2Fixed(HashMap<String, Contract> hm, String status, Partner partner){
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                String query = USP.partner.getContractDirtyRead2Fixed(status, partner);
+
+                Statement stmt = getInstance().conn.createStatement();
+                ResultSet rs = stmt.executeQuery(query);
+
+                hm.clear();
+                while (rs.next()) {
+                    Partner p = new Partner();
+                    p.setName(rs.getString("name"));
+                    p.setRepresentativeName(rs.getString("representative_name"));
+                    p.setAddress(new Address(AdministrativeDivision.getInstance().getProvinceList().get(rs.getString("address_province_code")), AdministrativeDivision.getInstance().getDistrictList().get(rs.getString("address_district_code")), AdministrativeDivision.getInstance().getWardList().get(rs.getString("address_ward_code")), rs.getString("address_line")));
+                    p.setBranchNumber(rs.getInt("branch_number"));
+                    p.setOrderNumber(rs.getInt("order_number"));
+                    p.setProductType(rs.getString("product_type"));
+                    p.setPhone(rs.getString("phone"));
+                    p.setMail(rs.getString("mail"));
+
+                    Contract c = new Contract();
+                    c.setPartner(p);
+                    c.setTIN(rs.getString("TIN"));
+                    c.setCID(rs.getString("CID"));
+                    c.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    c.setExpiredAt(rs.getTimestamp("expired_at").toLocalDateTime());
+                    c.setCommission(rs.getFloat("commission"));
+                    c.setStatus(rs.getString("status"));
+                    c.setExpired(rs.getBoolean("is_expired"));
+
+                    hm.put(c.getCID(), c);
+                }
+
+                getInstance().close();
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                getInstance().close();
+                return false;
+            }
+        }
+    }
+
     public static class employee {
+        public static boolean getContracts(String status, HashMap<String, Contract> hm) {
+            hm.clear();
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("EMPLOYEE");
+
+                getInstance().open();
+
+                String query = USP.employee.getContracts(status);
+
+                Statement stmt = getInstance().conn.createStatement();
+                ResultSet rs = stmt.executeQuery(query);
+
+                while (rs.next()) {
+                    Partner p = new Partner();
+                    p.setName(rs.getString("name"));
+                    p.setRepresentativeName(rs.getString("representative_name"));
+                    p.setAddress(new Address(AdministrativeDivision.getInstance().getProvinceList().get(rs.getString("address_province_code")), AdministrativeDivision.getInstance().getDistrictList().get(rs.getString("address_district_code")), AdministrativeDivision.getInstance().getWardList().get(rs.getString("address_ward_code")), rs.getString("address_line")));
+                    p.setBranchNumber(rs.getInt("branch_number"));
+                    p.setOrderNumber(rs.getInt("order_number"));
+                    p.setProductType(rs.getString("product_type"));
+                    p.setPhone(rs.getString("phone"));
+                    p.setMail(rs.getString("mail"));
+
+                    Contract c = new Contract();
+                    c.setPartner(p);
+                    c.setTIN(rs.getString("TIN"));
+                    c.setCID(rs.getString("CID"));
+                    c.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    c.setExpiredAt(rs.getTimestamp("expired_at").toLocalDateTime());
+                    c.setCommission(rs.getFloat("commission"));
+                    c.setStatus(rs.getString("status"));
+                    c.setExpired(rs.getBoolean("is_expired"));
+
+                    hm.put(c.getCID(), c);
+                }
+
+                getInstance().close();
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                getInstance().close();
+                return false;
+            }
+        }
+
+        public static boolean acceptContractButFailDirtyRead2Error(Contract c){
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                String query = USP.employee.acceptContractButFailDirtyRead2Error(c);
+
+                Statement stmt = getInstance().conn.createStatement();
+                stmt.execute(query);
+
+                //throw new SQLException("ERROR: Accept fail !!!!!");
+                return false;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                getInstance().close();
+                return false;
+            }
+            finally {
+                getInstance().close();
+            }
+        }
+
+        public static boolean acceptContractButFailDirtyRead2Fixed(Contract c){
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                String query = USP.employee.acceptContractButFailDirtyRead2Fixed(c);
+
+                Statement stmt = getInstance().conn.createStatement();
+                stmt.execute(query);
+
+                //throw new SQLException("FIXED: Accept fail !!!!!");
+                return false;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                getInstance().close();
+                return false;
+            }
+            finally {
+                getInstance().close();
+            }
+        }
+
         public static boolean acceptAllContract() {
             try {
                 getInstance().currentSQLLogin = getInstance().sqlLogins.get("EMPLOYEE");
@@ -506,29 +837,103 @@ public class DatabaseCommunication {
                 getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
 
                 getInstance().open();
+                String query = USP.customer.createOrderButFailDirtyRead1Error(order);
 
-                String query = USP.customer.createOrder(order);
-                System.out.println("O:" + query);
                 Statement statement = getInstance().conn.createStatement();
                 statement.execute(query);
 
-                for (OrderDetail od : order.getOrderDetails()) {
-                    query = USP.customer.addProductToOrder(od);
-                    System.out.println("OD:" + query);
-                    statement.execute(query);
-                }
+                throw new SQLException("create failed");
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
 
-                query = USP.customer.deleteCart(cart);
-                System.out.println("DELETE C: " + query);
+        public static boolean createOrderButFailError(Order order, Cart cart) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
 
+                getInstance().open();
+
+                String query = USP.customer.createOrderButFailDirtyRead1Error(order);
+
+                Statement statement = getInstance().conn.createStatement();
                 statement.execute(query);
 
-                getInstance().close();
-                return true;
-            } catch (SQLException e) {
+                throw new SQLException("create failed");
+            } catch (Exception e) {
                 e.printStackTrace();
-                getInstance().close();
                 return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static boolean createOrderButFailFixed(Order order, Cart cart) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
+
+                getInstance().open();
+
+                String query = USP.customer.createOrderButFailDirtRead1Fixed(order);
+
+                Statement statement = getInstance().conn.createStatement();
+                statement.execute(query);
+
+                throw new SQLException("create failed");
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static boolean createOrderLostUpdate1ErrorT1(Order order, Cart cart){
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
+
+                getInstance().open();
+
+                String query = USP.customer.createOrderLostUpdate1ErrorT1(order);
+
+                Statement statement = getInstance().conn.createStatement();
+                statement.execute(query);
+
+                query = USP.customer.deleteCart(cart);
+                statement.execute(query);
+
+                return true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static boolean createOrderLostUpdate1ErrorT2(Order order, Cart cart){
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
+
+                getInstance().open();
+
+                String query = USP.customer.createOrderLostUpdate1ErrorT2(order);
+
+                Statement statement = getInstance().conn.createStatement();
+                statement.execute(query);
+
+                query = USP.customer.deleteCart(cart);
+                statement.execute(query);
+
+                return true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                getInstance().close();
             }
         }
 
@@ -604,3 +1009,5 @@ public class DatabaseCommunication {
         }
     }
 }
+
+

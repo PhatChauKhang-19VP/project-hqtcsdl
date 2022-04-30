@@ -11,6 +11,6 @@
             fx:controller="pck.dbms.fe.Test"
             prefHeight="400.0" prefWidth="600.0">
     <Pane fx:id="pane">
-        <Button fx:id="btn" text="click here" onAction="#showModal"></Button>
+        <Button fx:id="btn, btn-default" text="click here" onAction="#showModal"></Button>
     </Pane>
 </AnchorPane>

@@ -79,6 +79,15 @@ public class Order {
         return customer;
     }
 
+    public String getCustomerName(){return customer.getName();};
+
+    public String getCustomerAddress(){
+        return customer.getAddress().getAddressLine() + "\n"
+                + customer.getAddress().getWard().getFullName() + "\n"
+                + customer.getAddress().getDistrict().getFullName() + "\n"
+                + customer.getAddress().getProvince().getFullName() + "\n";
+    }
+
     public void setCustomer(Customer customer) {
         this.customer = customer;
     }

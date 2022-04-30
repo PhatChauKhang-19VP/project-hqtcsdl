@@ -7,7 +7,7 @@
 <?import javafx.scene.text.Font?>
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0"
             prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="pck.dbms.fe.partner.home.Controller">
+            fx:controller="pck.dbms.fe.demo.ErrSelectionController">
     <top>
         <Pane prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #A8ACFF;" BorderPane.alignment="CENTER">
             <Label layoutX="310.0" layoutY="12.0" text="Bán hàng Online">
@@ -30,22 +30,23 @@
     </bottom>
     <center>
         <Pane prefHeight="600.0" prefWidth="800.0" BorderPane.alignment="CENTER">
-            <Label alignment="CENTER" layoutY="30.0" prefWidth="800.0"
-                   style="-fx-font-family: arial; -fx-font-size: 48;" text="Đối tác"/>
-            <Pane layoutX="163.0" layoutY="187.0" prefHeight="125.0" prefWidth="450.0">
-                <Button fx:id="btnCnt" mnemonicParsing="false" onAction="#onBtnCntClick" prefHeight="50.0"
-                        prefWidth="200.0"
-                        style="-fx-font-size: 18;-fx-font-family: arial;-fx-background-color: #A8ACFF; -fx-alignment: center;"
-                        styleClass="btn" text="Quản lí Hợp đồng"/>
-                <Button fx:id="btnProd" layoutX="250.0" mnemonicParsing="false" onAction="#onBtnProdClick"
-                        prefHeight="50.0" prefWidth="200.0"
-                        style="-fx-font-size: 18;-fx-font-family: arial;-fx-background-color: #A8ACFF; -fx-alignment: center;"
-                        styleClass="btn" text="Quản lí sản phẩm"/>
-                <Button fx:id="btnOrd" layoutX="125.0" layoutY="75.0" mnemonicParsing="false"
-                        onAction="#onBtnOrdClick" prefHeight="50.0" prefWidth="200.0"
-                        style="-fx-font-size: 18;-fx-font-family: arial;-fx-background-color: #A8ACFF; -fx-alignment: center;"
-                        styleClass="btn" text="Quản lí đơn hàng"/>
+            <Label fx:id="lblPrim" alignment="CENTER" layoutY="50.0" prefWidth="800.0" text="Demo Lỗi">
+                <font>
+                    <Font name="Arial" size="48.0"/>
+                </font>
+            </Label>
+            <Pane layoutX="150.0" layoutY="225.0" maxHeight="0.0" maxWidth="575.0" prefHeight="150.0" prefWidth="500.0">
+                <ComboBox fx:id="cbBox" prefHeight="50.0" prefWidth="240.0" promptText="Chọn loại lỗi"/>
+                <ComboBox fx:id="cbBoxNO" layoutX="270.0" prefHeight="50.0" prefWidth="100.0" promptText="STT"/>
+                <Button fx:id="btnSelect" layoutX="400.0" mnemonicParsing="false" onAction="#onBtnSelectClick"
+                        prefHeight="51.0" prefWidth="100.0" style="-fx-font-size: 24; -fx-background-color: #A8ACFF;"
+                        styleClass="btn" text="Chọn">
+                    <font>
+                        <Font size="24.0"/>
+                    </font>
+                </Button>
             </Pane>
+            <Label layoutX="150.0" layoutY="180.0" style="-fx-font-size: 24;" text="Hãy chọn loại Demo"/>
         </Pane>
     </center>
 </BorderPane>

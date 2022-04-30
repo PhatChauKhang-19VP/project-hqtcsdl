@@ -1,31 +1,35 @@
 package pck.dbms.fe.partner.home;
 
 import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
 import javafx.scene.control.Button;
-import pck.dbms.fe.App;
+import javafx.scene.image.ImageView;
+import pck.dbms.be.partner.Partner;
 
 public class Controller {
-    public Button btnManageProduct;
-    public Button btnManageOrder;
-    public Button btnContract;
+    public ImageView imgVBack;
+    public ImageView imgVLogout;
 
-    public void onBtnContractClick(ActionEvent e) {
-        if (e.getSource() == btnContract) {
-            System.out.println("btn contract clicked");
-            App.getInstance().gotoPartnerContract();
+    public Partner partner;
+
+    public Button btnProd;
+    public Button btnOrd;
+    public Button btnCnt;
+
+    public void onBtnCntClick(ActionEvent ae) {
+        if (ae.getSource() == btnCnt) {
+            System.out.println(getClass() + "btnCnt clicked");
         }
     }
 
-    public void onBtnManageOrderClick(ActionEvent ae) {
-        if (ae.getSource() == btnManageOrder) {
-            System.out.println("btn order clicked");
+    public void onBtnProdClick(ActionEvent ae) {
+        if (ae.getSource() == btnProd) {
+            System.out.println(getClass() + "btnProd clicked");
         }
     }
 
-    public void onBtnManageProductClick(ActionEvent ae) {
-        if (ae.getSource() == btnManageProduct) {
-            System.out.println("Btn product clicked");
+    public void onBtnOrdClick(ActionEvent ae) {
+        if (ae.getSource() == btnOrd) {
+            System.out.println(getClass() + "btnOrd clicked");
         }
     }
 }

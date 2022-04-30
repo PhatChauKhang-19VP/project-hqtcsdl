@@ -176,6 +176,8 @@ public class USP {
 
             query += "'" + partner.getLogin().getUsername() + "'";
 
+            System.out.println(query);
+
             return query;
         }
 
@@ -185,6 +187,125 @@ public class USP {
             query += "'" + order.getOrderID() + "', ";
             query += "'" + order.getDeliveryStatus() + "'";
 
+            return query;
+        }
+
+        public static String partnerGetOrderListDirtyRead1Error(Partner partner) {
+            String query = "declare @partner_username varchar(50) = '" + partner.getLogin().getUsername() + "'\n";
+
+            query += """
+                    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+                    begin try
+                        begin tran
+                        select o.*, p.username, c.name, c.address_line, w.full_name, dt.full_name, pv.full_name, w.code as w_code, dt.code as dt_code, pv.code as pv_code
+                            from dbo.ORDERS as o
+                                join dbo.PARTNERS as p on p.username = o.partner_username
+                                join dbo.CUSTOMERS as c on o.customer_username = c.username
+                                join dbo.PROVINCES as pv on c.address_province_code = pv.code
+                                join dbo.DISTRICTS as dt on c.address_district_code = dt.code
+                                join dbo.WARDS as w on c.address_ward_code = w.code
+                            where p.username = @partner_username
+                        commit tran
+                    end try
+                    begin catch
+                        declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    if (@@TRANCOUNT > 0)
+                        rollback tran
+                    end catch""";
+
+            System.out.println("[partner]\n" + query);
+            return query;
+        }
+
+        public static String partnerGetOrderListDirtyRead1Fixed(Partner partner) {
+            String query = "declare @partner_username varchar(50) = '" + partner.getLogin().getUsername() + "'\n";
+
+            query += """
+                    begin try
+                        begin tran
+                        select o.*, p.username, c.name, c.address_line, w.full_name, dt.full_name, pv.full_name, w.code as w_code, dt.code as dt_code, pv.code as pv_code
+                            from dbo.ORDERS as o
+                                join dbo.PARTNERS as p on p.username = o.partner_username
+                                join dbo.CUSTOMERS as c on o.customer_username = c.username
+                                join dbo.PROVINCES as pv on c.address_province_code = pv.code
+                                join dbo.DISTRICTS as dt on c.address_district_code = dt.code
+                                join dbo.WARDS as w on c.address_ward_code = w.code
+                            where p.username = @partner_username
+                        commit tran
+                    end try
+                    begin catch
+                        declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    if (@@TRANCOUNT > 0)
+                        rollback tran
+                    end catch""";
+
+            System.out.println("[partner]\n" + query);
+            return query;
+        }
+
+        public static String getContractDirtyRead2Error(String status, Partner p) {
+            String query = "declare @contract_status varchar(20) = '" + status + "'\n";
+
+            query += "declare @partner_username varchar(20) = '" + p.getLogin().getUsername() + "'\n";
+            query += """
+                    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+                    begin try
+                    		begin tran
+                    			if not @contract_status = '*'
+                    			begin
+                    				select * from dbo.CONTRACTS as c
+                    				join dbo.PARTNERS as p on c.username = p.username
+                    				where c.status=@contract_status AND c.username = @partner_username
+                    			end
+                    			else
+                    				select * from dbo.CONTRACTS as c
+                    				join dbo.PARTNERS as p on c.username = p.username
+                    				where c.username = @partner_username
+                    		commit tran
+                    	end try
+                    	begin catch
+                    		declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    		select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    		raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    		if (@@TRANCOUNT > 0)
+                    			rollback tran
+                    	end catch""";
+
+            System.out.println(query);
+            return query;
+        }
+
+        public static String getContractDirtyRead2Fixed(String status, Partner p) {
+            String query = "declare @contract_status varchar(20) = '" + status + "'\n";
+
+            query += "declare @partner_username varchar(20) = '" + p.getLogin().getUsername() + "'\n";
+            query += """
+                    begin try
+                    		begin tran
+                    			if not @contract_status = '*'
+                    			begin
+                    				select * from dbo.CONTRACTS as c
+                    				join dbo.PARTNERS as p on c.username = p.username
+                    				where c.status=@contract_status AND c.username = @partner_username
+                    			end
+                    			else
+                    				select * from dbo.CONTRACTS as c
+                    				join dbo.PARTNERS as p on c.username = p.username
+                    				where c.username = @partner_username
+                    		commit tran
+                    	end try
+                    	begin catch
+                    		declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    		select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    		raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    		if (@@TRANCOUNT > 0)
+                    			rollback tran
+                    	end catch""";
+            System.out.println(query);
             return query;
         }
     }
@@ -292,7 +413,7 @@ public class USP {
             return query;
         }
 
-        public static String getCartDetails(Cart cart){
+        public static String getCartDetails(Cart cart) {
             String query = "exec dbo.usp_customer_get_cart_details ";
             query += "'" + cart.partner.getLogin().getUsername() + "', ";
             query += "'" + cart.customer.getLogin().getUsername() + "'";
@@ -300,7 +421,7 @@ public class USP {
             return query;
         }
 
-        public static String deleteCart(Cart cart){
+        public static String deleteCart(Cart cart) {
             String query = "exec dbo.usp_customer_delete_cart_details ";
             query += "'" + cart.partner.getLogin().getUsername() + "', ";
             query += "'" + cart.customer.getLogin().getUsername() + "'";
@@ -308,16 +429,655 @@ public class USP {
             return query;
         }
 
-        public static String createOrder(Order o) {
-            String query = "exec dbo.usp_customer_create_order ";
+        private static String insertOrder(Order o) {
+            String query = "insert into dbo.ORDERS(order_id, partner_username, customer_username, payment_method, delivery_status, paid_status, shipping_fee) values(";
 
             query += "'" + o.getOrderID() + "', ";
             query += "'" + o.getPartner().getLogin().getUsername() + "', ";
             query += "'" + o.getCustomer().getLogin().getUsername() + "', ";
             query += "'" + o.getPaymentMethod() + "'";
+            query += "'PENDING', 'UNPAID', 10)";
 
             return query;
         }
+
+        private static String insertSingleOrderDetail(OrderDetail od) {
+            String query = "\n";
+            query += "set @PID = " + "'" + od.getProduct().getPID() + "'\n";
+            query += "set @PBID = " + "'" + od.getPartnerBranch().getPBID() + "'\n";
+            query += "set @quantity = " + od.getQuantity() + "\n";
+
+            query += """
+                    -- kiểm tra số lượng có > 0
+                    if @quantity <= 0
+                        throw 52000, --Error number must be between 50000 and  2147483647.
+                            'Quantity <= 0 : NOT VALID', --Message
+                            1; --State
+                             
+                    -- kiểm tra sản phầm có tồn tại trong branch/stock > 0 không
+                    if not exists (select stock from dbo.PRODUCT_IN_BRANCHES as pib where pib.PID = @PID and pib.PBID = @PBID)\s
+                        or (select stock from dbo.PRODUCT_IN_BRANCHES as pib where pib.PID = @PID and pib.PBID = @PBID) = 0
+                             
+                        throw 52000, --Error number must be between 50000 and  2147483647.
+                            'Product not in branch or out of stock', --Message
+                            1; --State
+                             
+                    -- thêm sản phẩm vào ORDER_DETAILS
+                             
+                    ---- Kiểm tra sản phẩm đã tồn tại hay chưa, nếu không tạo mới, nếu có, tăng thêm số lượng
+                    if not exists (select * from dbo.ORDERS_DETAILS as od where od.order_id = @order_id and od.PID = @PID)
+                        begin
+                            insert into dbo.ORDERS_DETAILS (order_id, PID, PBID, quantity)
+                                values (@order_id, @PID, @PBID,  @quantity)
+                        end
+                    else
+                        begin
+                            set @curr_quantity = (select quantity from dbo.ORDERS_DETAILS as od where od.order_id = @order_id and od.PID = @PID)
+                            
+                            update dbo.ORDERS_DETAILS
+                                set\s
+                                    quantity = @curr_quantity + @quantity
+                                where order_id = @order_id and PID = @PID
+                        end
+                             
+                    -- giảm số lượng sản phẩm trong chi nhánh đi `quantity`
+                    set @curr_stock = (select pib.stock
+                                                    from dbo.PRODUCT_IN_BRANCHES as pib
+                                                    where pib.PID = @PID and pib.PBID = @PBID)
+                    set @new_stock = @curr_stock - @quantity
+                    update dbo.PRODUCT_IN_BRANCHES
+                        set stock = @new_stock
+                        where PID = @PID and PBID = @PBID
+                    """;
+
+            return query;
+        }
+
+        private static String insertOrderDetails(Order o) {
+            StringBuilder query = new StringBuilder("\n");
+
+            for (OrderDetail od : o.getOrderDetails()) {
+                query.append(insertSingleOrderDetail(od));
+            }
+
+            return query.toString();
+        }
+
+        public static String createOrder(Order o) {
+            String query = "";
+            query += "declare @order_id varchar(20) = " + "'" + o.getOrderID() + "'\n";
+            query += "declare @partner_username varchar(50) = " + "'" + o.getPartner().getLogin().getUsername() + "'\n";
+            query += "declare @customer_username varchar(50) = " + "'" + o.getCustomer().getLogin().getUsername() + "'\n";
+            query += "declare @payment_method varchar(20) = " + "'" + o.getPaymentMethod() + "'\n";
+            query += "declare @PID varchar(20)\n";
+            query += "declare @PBID varchar(20)\n";
+            query += "declare @quantity int\n";
+            query += "declare @curr_quantity int\n";
+            query += "declare @curr_stock int\n";
+            query += "declare @new_stock int\n";
+            query +=
+                    """
+                            begin try
+                            	begin tran
+                            """;
+            query +=
+                    """
+                            insert into dbo.ORDERS(order_id, partner_username, customer_username, payment_method, delivery_status, paid_status, shipping_fee)
+                                values (@order_id, @partner_username, @customer_username, @payment_method, 'PENDING', 'UNPAID', 10)
+                                \n
+                            """;
+            query += insertOrderDetails(o);
+
+            query +=
+                    """
+                            commit tran
+                            end try
+                            begin catch
+                                declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                            select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                            raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                            if (@@TRANCOUNT > 0)
+                                rollback tran
+                            end catch
+                            """;
+
+            System.out.println(query);
+
+            return query;
+        }
+
+        public static String createOrderButFailDirtyRead1Error(Order o) {
+            String query = "";
+            query += "declare @order_id varchar(20) = " + "'" + o.getOrderID() + "'\n";
+            query += "declare @partner_username varchar(50) = " + "'" + o.getPartner().getLogin().getUsername() + "'\n";
+            query += "declare @customer_username varchar(50) = " + "'" + o.getCustomer().getLogin().getUsername() + "'\n";
+            query += "declare @payment_method varchar(20) = " + "'" + o.getPaymentMethod() + "'\n";
+            query += "declare @PID varchar(20)\n";
+            query += "declare @PBID varchar(20)\n";
+            query += "declare @quantity int\n";
+            query += "declare @curr_quantity int\n";
+            query += "declare @curr_stock int\n";
+            query += "declare @new_stock int\n";
+            query +=
+                    """
+                            SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+                                                        
+                            begin try
+                            	begin tran
+                            """;
+            query +=
+                    """
+                            insert into dbo.ORDERS(order_id, partner_username, customer_username, payment_method, delivery_status, paid_status, shipping_fee)
+                                values (@order_id, @partner_username, @customer_username, @payment_method, 'PENDING', 'UNPAID', 10)
+                                \n
+                            """;
+            query += insertOrderDetails(o);
+
+            query +=
+                    """
+                            waitfor delay '00:00:05';
+                            throw 52000, 'Some Error failed to create order !!!', 1
+                            commit tran
+                            end try
+                            begin catch
+                                declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                            select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                            raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                            if (@@TRANCOUNT > 0)
+                                rollback tran
+                            end catch
+                            """;
+
+            System.out.println(query);
+
+            return query;
+        }
+
+        public static String createOrderButFailDirtRead1Fixed(Order o) {
+            String query = "";
+            query += "declare @order_id varchar(20) = " + "'" + o.getOrderID() + "'\n";
+            query += "declare @partner_username varchar(50) = " + "'" + o.getPartner().getLogin().getUsername() + "'\n";
+            query += "declare @customer_username varchar(50) = " + "'" + o.getCustomer().getLogin().getUsername() + "'\n";
+            query += "declare @payment_method varchar(20) = " + "'" + o.getPaymentMethod() + "'\n";
+            query += "declare @PID varchar(20)\n";
+            query += "declare @PBID varchar(20)\n";
+            query += "declare @quantity int\n";
+            query += "declare @curr_quantity int\n";
+            query += "declare @curr_stock int\n";
+            query += "declare @new_stock int\n";
+            query +=
+                    """
+                            begin try
+                            	begin tran
+                            """;
+            query +=
+                    """
+                            insert into dbo.ORDERS(order_id, partner_username, customer_username, payment_method, delivery_status, paid_status, shipping_fee)
+                                values (@order_id, @partner_username, @customer_username, @payment_method, 'PENDING', 'UNPAID', 10)
+                                \n
+                            """;
+            query += insertOrderDetails(o);
+
+            query +=
+                    """
+                            waitfor delay '00:00:05';
+                            throw 52000, 'Some Error failed to create order !!!', 1
+                            commit tran
+                            end try
+                            begin catch
+                                declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                            select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                            raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                            if (@@TRANCOUNT > 0)
+                                rollback tran
+                            end catch
+                            """;
+
+            System.out.println(query);
+
+            return query;
+        }
+
+        // -----------------------------
+
+        private static String insertSingleOrderDetailLostUpdate1ErrorT1(OrderDetail od) {
+            String query = "\n";
+            query += "set @PID = " + "'" + od.getProduct().getPID() + "'\n";
+            query += "set @PBID = " + "'" + od.getPartnerBranch().getPBID() + "'\n";
+            query += "set @quantity = " + od.getQuantity() + "\n";
+
+            query += """
+                    -- kiểm tra số lượng có > 0
+                    if @quantity <= 0
+                        throw 52000, --Error number must be between 50000 and  2147483647.
+                            'Quantity <= 0 : NOT VALID', --Message
+                            1; --State
+                             
+                    -- kiểm tra sản phầm có tồn tại trong branch/stock > 0 không
+                    if not exists (select stock from dbo.PRODUCT_IN_BRANCHES as pib where pib.PID = @PID and pib.PBID = @PBID)\s
+                        or (select stock from dbo.PRODUCT_IN_BRANCHES as pib where pib.PID = @PID and pib.PBID = @PBID) = 0
+                             
+                        throw 52000, --Error number must be between 50000 and  2147483647.
+                            'Product not in branch or out of stock', --Message
+                            1; --State
+                             
+                    -- thêm sản phẩm vào ORDER_DETAILS
+                             
+                    ---- Kiểm tra sản phẩm đã tồn tại hay chưa, nếu không tạo mới, nếu có, tăng thêm số lượng
+                    if not exists (select * from dbo.ORDERS_DETAILS as od where od.order_id = @order_id and od.PID = @PID)
+                        begin
+                            insert into dbo.ORDERS_DETAILS (order_id, PID, PBID, quantity)
+                                values (@order_id, @PID, @PBID,  @quantity)
+                        end
+                    else
+                        begin
+                            set @curr_quantity = (select quantity from dbo.ORDERS_DETAILS as od where od.order_id = @order_id and od.PID = @PID)
+                            
+                            update dbo.ORDERS_DETAILS
+                                set\s
+                                    quantity = @curr_quantity + @quantity
+                                where order_id = @order_id and PID = @PID
+                        end
+                             
+                    -- giảm số lượng sản phẩm trong chi nhánh đi `quantity`
+                    set @curr_stock = (select pib.stock
+                                                    from dbo.PRODUCT_IN_BRANCHES as pib
+                                                    where pib.PID = @PID and pib.PBID = @PBID)
+                    
+                    waitfor delay '00:00:05'
+                    
+                    set @new_stock = @curr_stock - @quantity
+                    update dbo.PRODUCT_IN_BRANCHES
+                        set stock = @new_stock
+                        where PID = @PID and PBID = @PBID
+                    """;
+
+            return query;
+        }
+
+        private static String insertOrderDetailsLostUpdate1ErrorT1(Order o) {
+            StringBuilder query = new StringBuilder("\n");
+
+            for (OrderDetail od : o.getOrderDetails()) {
+                query.append(insertSingleOrderDetailLostUpdate1ErrorT1(od));
+            }
+
+            return query.toString();
+        }
+
+        public static String createOrderLostUpdate1ErrorT1(Order o) {
+            String query = "";
+            query += "declare @order_id varchar(20) = " + "'" + o.getOrderID() + "'\n";
+            query += "declare @partner_username varchar(50) = " + "'" + o.getPartner().getLogin().getUsername() + "'\n";
+            query += "declare @customer_username varchar(50) = " + "'" + o.getCustomer().getLogin().getUsername() + "'\n";
+            query += "declare @payment_method varchar(20) = " + "'" + o.getPaymentMethod() + "'\n";
+            query += "declare @PID varchar(20)\n";
+            query += "declare @PBID varchar(20)\n";
+            query += "declare @quantity int\n";
+            query += "declare @curr_quantity int\n";
+            query += "declare @curr_stock int\n";
+            query += "declare @new_stock int\n";
+            query +=
+                    """
+                            begin try
+                            	begin tran
+                            """;
+            query +=
+                    """
+                            insert into dbo.ORDERS(order_id, partner_username, customer_username, payment_method, delivery_status, paid_status, shipping_fee)
+                                values (@order_id, @partner_username, @customer_username, @payment_method, 'PENDING', 'UNPAID', 10)
+                                \n
+                            """;
+            query += insertOrderDetailsLostUpdate1ErrorT1(o);
+
+            query +=
+                    """
+                            commit tran
+                            end try
+                            begin catch
+                                declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                            select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                            raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                            if (@@TRANCOUNT > 0)
+                                rollback tran
+                            end catch
+                            """;
+
+            System.out.println(query);
+
+            return query;
+        }
+
+        // - - - - - -
+
+        private static String insertSingleOrderDetailLostUpdate1ErrorT2(OrderDetail od) {
+            String query = "\n";
+            query += "set @PID = " + "'" + od.getProduct().getPID() + "'\n";
+            query += "set @PBID = " + "'" + od.getPartnerBranch().getPBID() + "'\n";
+            query += "set @quantity = " + od.getQuantity() + "\n";
+
+            query += """
+                    -- kiểm tra số lượng có > 0
+                    if @quantity <= 0
+                        throw 52000, --Error number must be between 50000 and  2147483647.
+                            'Quantity <= 0 : NOT VALID', --Message
+                            1; --State
+                             
+                    -- kiểm tra sản phầm có tồn tại trong branch/stock > 0 không
+                    if not exists (select stock from dbo.PRODUCT_IN_BRANCHES as pib where pib.PID = @PID and pib.PBID = @PBID)\s
+                        or (select stock from dbo.PRODUCT_IN_BRANCHES as pib where pib.PID = @PID and pib.PBID = @PBID) = 0
+                             
+                        throw 52000, --Error number must be between 50000 and  2147483647.
+                            'Product not in branch or out of stock', --Message
+                            1; --State
+                             
+                    -- thêm sản phẩm vào ORDER_DETAILS
+                             
+                    ---- Kiểm tra sản phẩm đã tồn tại hay chưa, nếu không tạo mới, nếu có, tăng thêm số lượng
+                    if not exists (select * from dbo.ORDERS_DETAILS as od where od.order_id = @order_id and od.PID = @PID)
+                        begin
+                            insert into dbo.ORDERS_DETAILS (order_id, PID, PBID, quantity)
+                                values (@order_id, @PID, @PBID,  @quantity)
+                        end
+                    else
+                        begin
+                            set @curr_quantity = (select quantity from dbo.ORDERS_DETAILS as od where od.order_id = @order_id and od.PID = @PID)
+                            
+                            update dbo.ORDERS_DETAILS
+                                set\s
+                                    quantity = @curr_quantity + @quantity
+                                where order_id = @order_id and PID = @PID
+                        end
+                             
+                    -- giảm số lượng sản phẩm trong chi nhánh đi `quantity`
+                    set @curr_stock = (select pib.stock
+                                                    from dbo.PRODUCT_IN_BRANCHES as pib
+                                                    where pib.PID = @PID and pib.PBID = @PBID)                                   
+                    set @new_stock = @curr_stock - @quantity
+                    update dbo.PRODUCT_IN_BRANCHES
+                        set stock = @new_stock
+                        where PID = @PID and PBID = @PBID
+                    """;
+
+            return query;
+        }
+
+        private static String insertOrderDetailsLostUpdate1ErrorT2(Order o) {
+            StringBuilder query = new StringBuilder("\n");
+
+            for (OrderDetail od : o.getOrderDetails()) {
+                query.append(insertSingleOrderDetailLostUpdate1ErrorT2(od));
+            }
+
+            return query.toString();
+        }
+
+        public static String createOrderLostUpdate1ErrorT2(Order o) {
+            String query = "";
+            query += "declare @order_id varchar(20) = " + "'" + o.getOrderID() + "'\n";
+            query += "declare @partner_username varchar(50) = " + "'" + o.getPartner().getLogin().getUsername() + "'\n";
+            query += "declare @customer_username varchar(50) = " + "'" + o.getCustomer().getLogin().getUsername() + "'\n";
+            query += "declare @payment_method varchar(20) = " + "'" + o.getPaymentMethod() + "'\n";
+            query += "declare @PID varchar(20)\n";
+            query += "declare @PBID varchar(20)\n";
+            query += "declare @quantity int\n";
+            query += "declare @curr_quantity int\n";
+            query += "declare @curr_stock int\n";
+            query += "declare @new_stock int\n";
+            query +=
+                    """
+                            begin try
+                            	begin tran
+                            """;
+            query +=
+                    """
+                            insert into dbo.ORDERS(order_id, partner_username, customer_username, payment_method, delivery_status, paid_status, shipping_fee)
+                                values (@order_id, @partner_username, @customer_username, @payment_method, 'PENDING', 'UNPAID', 10)
+                                \n
+                            """;
+            query += insertOrderDetailsLostUpdate1ErrorT2(o);
+
+            query +=
+                    """
+                            commit tran
+                            end try
+                            begin catch
+                                declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                            select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                            raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                            if (@@TRANCOUNT > 0)
+                                rollback tran
+                            end catch
+                            """;
+
+            System.out.println(query);
+
+            return query;
+        }
+
+        // -----------------------------
+
+        private static String insertSingleOrderDetailLostUpdate1FixedT1(OrderDetail od) {
+            String query = "\n";
+            query += "set @PID = " + "'" + od.getProduct().getPID() + "'\n";
+            query += "set @PBID = " + "'" + od.getPartnerBranch().getPBID() + "'\n";
+            query += "set @quantity = " + od.getQuantity() + "\n";
+
+            query += """
+                    SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
+                    
+                    -- kiểm tra số lượng có > 0
+                    if @quantity <= 0
+                        throw 52000, --Error number must be between 50000 and  2147483647.
+                            'Quantity <= 0 : NOT VALID', --Message
+                            1; --State
+                             
+                    -- kiểm tra sản phầm có tồn tại trong branch/stock > 0 không
+                    if not exists (select stock from dbo.PRODUCT_IN_BRANCHES as pib where pib.PID = @PID and pib.PBID = @PBID)\s
+                        or (select stock from dbo.PRODUCT_IN_BRANCHES as pib where pib.PID = @PID and pib.PBID = @PBID) = 0
+                             
+                        throw 52000, --Error number must be between 50000 and  2147483647.
+                            'Product not in branch or out of stock', --Message
+                            1; --State
+                             
+                    -- thêm sản phẩm vào ORDER_DETAILS
+                             
+                    ---- Kiểm tra sản phẩm đã tồn tại hay chưa, nếu không tạo mới, nếu có, tăng thêm số lượng
+                    if not exists (select * from dbo.ORDERS_DETAILS as od where od.order_id = @order_id and od.PID = @PID)
+                        begin
+                            insert into dbo.ORDERS_DETAILS (order_id, PID, PBID, quantity)
+                                values (@order_id, @PID, @PBID,  @quantity)
+                        end
+                    else
+                        begin
+                            set @curr_quantity = (select quantity from dbo.ORDERS_DETAILS as od where od.order_id = @order_id and od.PID = @PID)
+                            
+                            update dbo.ORDERS_DETAILS
+                                set\s
+                                    quantity = @curr_quantity + @quantity
+                                where order_id = @order_id and PID = @PID
+                        end
+                             
+                    -- giảm số lượng sản phẩm trong chi nhánh đi `quantity`
+                    set @curr_stock = (select pib.stock
+                                                    from dbo.PRODUCT_IN_BRANCHES as pib
+                                                    where pib.PID = @PID and pib.PBID = @PBID)
+                                        
+                    waitfor delay '00:00:05'
+                                        
+                    set @new_stock = @curr_stock - @quantity
+                    update dbo.PRODUCT_IN_BRANCHES
+                        set stock = @new_stock
+                        where PID = @PID and PBID = @PBID
+                    """;
+
+            return query;
+        }
+
+        private static String insertOrderDetailsLostUpdate1FixedT1(Order o) {
+            StringBuilder query = new StringBuilder("\n");
+
+            for (OrderDetail od : o.getOrderDetails()) {
+                query.append(insertSingleOrderDetailLostUpdate1FixedT1(od));
+            }
+
+            return query.toString();
+        }
+
+        public static String createOrderLostUpdate1FixedT1(Order o) {
+            String query = "";
+            query += "declare @order_id varchar(20) = " + "'" + o.getOrderID() + "'\n";
+            query += "declare @partner_username varchar(50) = " + "'" + o.getPartner().getLogin().getUsername() + "'\n";
+            query += "declare @customer_username varchar(50) = " + "'" + o.getCustomer().getLogin().getUsername() + "'\n";
+            query += "declare @payment_method varchar(20) = " + "'" + o.getPaymentMethod() + "'\n";
+            query += "declare @PID varchar(20)\n";
+            query += "declare @PBID varchar(20)\n";
+            query += "declare @quantity int\n";
+            query += "declare @curr_quantity int\n";
+            query += "declare @curr_stock int\n";
+            query += "declare @new_stock int\n";
+            query +=
+                    """
+                            begin try
+                            	begin tran
+                            """;
+            query +=
+                    """
+                            insert into dbo.ORDERS(order_id, partner_username, customer_username, payment_method, delivery_status, paid_status, shipping_fee)
+                                values (@order_id, @partner_username, @customer_username, @payment_method, 'PENDING', 'UNPAID', 10)
+                                \n
+                            """;
+            query += insertOrderDetailsLostUpdate1FixedT1(o);
+
+            query +=
+                    """
+                            commit tran
+                            end try
+                            begin catch
+                                declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                            select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                            raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                            if (@@TRANCOUNT > 0)
+                                rollback tran
+                            end catch
+                            """;
+
+            System.out.println(query);
+
+            return query;
+        }
+
+        // - - - - - -
+
+        private static String insertSingleOrderDetailLostUpdate1FixedT2(OrderDetail od) {
+            String query = "\n";
+            query += "set @PID = " + "'" + od.getProduct().getPID() + "'\n";
+            query += "set @PBID = " + "'" + od.getPartnerBranch().getPBID() + "'\n";
+            query += "set @quantity = " + od.getQuantity() + "\n";
+
+            query += """
+                    SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
+                    
+                    -- kiểm tra số lượng có > 0
+                    if @quantity <= 0
+                        throw 52000, --Error number must be between 50000 and  2147483647.
+                            'Quantity <= 0 : NOT VALID', --Message
+                            1; --State
+                             
+                    -- kiểm tra sản phầm có tồn tại trong branch/stock > 0 không
+                    if not exists (select stock from dbo.PRODUCT_IN_BRANCHES as pib where pib.PID = @PID and pib.PBID = @PBID)\s
+                        or (select stock from dbo.PRODUCT_IN_BRANCHES as pib where pib.PID = @PID and pib.PBID = @PBID) = 0
+                             
+                        throw 52000, --Error number must be between 50000 and  2147483647.
+                            'Product not in branch or out of stock', --Message
+                            1; --State
+                             
+                    -- thêm sản phẩm vào ORDER_DETAILS
+                             
+                    ---- Kiểm tra sản phẩm đã tồn tại hay chưa, nếu không tạo mới, nếu có, tăng thêm số lượng
+                    if not exists (select * from dbo.ORDERS_DETAILS as od where od.order_id = @order_id and od.PID = @PID)
+                        begin
+                            insert into dbo.ORDERS_DETAILS (order_id, PID, PBID, quantity)
+                                values (@order_id, @PID, @PBID,  @quantity)
+                        end
+                    else
+                        begin
+                            set @curr_quantity = (select quantity from dbo.ORDERS_DETAILS as od where od.order_id = @order_id and od.PID = @PID)
+                            
+                            update dbo.ORDERS_DETAILS
+                                set\s
+                                    quantity = @curr_quantity + @quantity
+                                where order_id = @order_id and PID = @PID
+                        end
+                             
+                    -- giảm số lượng sản phẩm trong chi nhánh đi `quantity`
+                    set @curr_stock = (select pib.stock
+                                                    from dbo.PRODUCT_IN_BRANCHES as pib
+                                                    where pib.PID = @PID and pib.PBID = @PBID)
+                                        
+                    set @new_stock = @curr_stock - @quantity
+                    update dbo.PRODUCT_IN_BRANCHES
+                        set stock = @new_stock
+                        where PID = @PID and PBID = @PBID
+                    """;
+
+            return query;
+        }
+
+        private static String insertOrderDetailsLostUpdate1FixedT2(Order o) {
+            StringBuilder query = new StringBuilder("\n");
+
+            for (OrderDetail od : o.getOrderDetails()) {
+                query.append(insertSingleOrderDetailLostUpdate1FixedT2(od));
+            }
+
+            return query.toString();
+        }
+
+        public static String createOrderLostUpdate1FixedT2(Order o) {
+            String query = "";
+            query += "declare @order_id varchar(20) = " + "'" + o.getOrderID() + "'\n";
+            query += "declare @partner_username varchar(50) = " + "'" + o.getPartner().getLogin().getUsername() + "'\n";
+            query += "declare @customer_username varchar(50) = " + "'" + o.getCustomer().getLogin().getUsername() + "'\n";
+            query += "declare @payment_method varchar(20) = " + "'" + o.getPaymentMethod() + "'\n";
+            query += "declare @PID varchar(20)\n";
+            query += "declare @PBID varchar(20)\n";
+            query += "declare @quantity int\n";
+            query += "declare @curr_quantity int\n";
+            query += "declare @curr_stock int\n";
+            query += "declare @new_stock int\n";
+            query +=
+                    """
+                            begin try
+                            	begin tran
+                            """;
+            query +=
+                    """
+                            insert into dbo.ORDERS(order_id, partner_username, customer_username, payment_method, delivery_status, paid_status, shipping_fee)
+                                values (@order_id, @partner_username, @customer_username, @payment_method, 'PENDING', 'UNPAID', 10)
+                                \n
+                            """;
+            query += insertOrderDetailsLostUpdate1FixedT2(o);
+
+            query +=
+                    """
+                            commit tran
+                            end try
+                            begin catch
+                                declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                            select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                            raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                            if (@@TRANCOUNT > 0)
+                                rollback tran
+                            end catch
+                            """;
+
+            System.out.println(query);
+
+            return query;
+        }
+
+        // -----------------------------
 
         public static String addProductToOrder(OrderDetail od) {
             String query = "exec dbo.usp_customer_add_product_to_order ";
@@ -361,6 +1121,63 @@ public class USP {
     }
 
     public static class employee {
+        public static String acceptContractButFailDirtyRead2Error(Contract c) {
+            String query = "declare @CID varchar(20) = '" + c.getCID() + "'\n";
+
+            query += """
+                    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+                                        
+                    begin try
+                        begin tran
+                    update CONTRACTS
+                        set status='ACCEPTED'
+                        where CID = @CID
+                        waitfor delay '00:00:05';
+                        throw 52000, 'Accept failed !!!', 1            
+                        commit tran
+                    end try
+                    begin catch
+                        declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    if (@@TRANCOUNT > 0)
+                        rollback tran
+                    end catch""";
+
+            System.out.println(query);
+            return query;
+
+        }
+
+        public static String acceptContractButFailDirtyRead2Fixed(Contract c) {
+            String query = "declare @CID varchar(20) = '" + c.getCID() + "'\n";
+
+            query += """
+                    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+                                        
+                    begin try
+                        begin tran
+                    update CONTRACTS
+                        set status='ACCEPTED'
+                        where CID = @CID
+                        waitfor delay '00:00:05';
+                        
+                        throw 52000, 'Accept failed !!!', 1;               
+                        commit tran
+                    end try
+                    begin catch
+                        declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    if (@@TRANCOUNT > 0)
+                        rollback tran
+                    end catch""";
+
+
+            return query;
+
+        }
+
         public static String getContracts(String contractStatus) {
             String query = "exec dbo.usp_employee_get_contracts ";
 

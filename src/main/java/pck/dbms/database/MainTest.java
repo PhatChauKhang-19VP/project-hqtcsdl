@@ -1,12 +1,10 @@
 package pck.dbms.database;
 
-import pck.dbms.be.cart.Cart;
-import pck.dbms.be.customer.Customer;
-import pck.dbms.be.partner.Partner;
-import pck.dbms.be.user.LoginInfo;
+import java.util.HashMap;
 
 public class MainTest {
     public static void main(String[] args) {
+
 //        DatabaseCommunication dc = DatabaseCommunication.getInstance();
 ////        AdministrativeDivision ad = AdministrativeDivision.getInstance();
 ////
@@ -41,6 +39,9 @@ public class MainTest {
 //        cart.partner = parFood;
 //
 //        DatabaseCommunication.customer.getCartDetails(cart);
+
+        DatabaseCommunication.getInstance();
+        DatabaseCommunication.employee.getContracts("*", new HashMap<>());
 
     }
 }

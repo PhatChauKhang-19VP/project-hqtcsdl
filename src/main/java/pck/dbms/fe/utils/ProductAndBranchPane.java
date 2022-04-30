@@ -1,7 +1,5 @@
 package pck.dbms.fe.utils;
 
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -33,8 +31,6 @@ public class ProductAndBranchPane {
         pane = new Pane();
         pane.setMinSize(195, 315);
         pane.setPrefSize(195, 315);
-//        pane.setBorder(new Border(new BorderStroke(Color.BLACK,
-//                BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 
         TextField tq = new TextField();
 
@@ -78,7 +74,7 @@ public class ProductAndBranchPane {
 
 
         // label price
-        Label productPrice = new Label(String.valueOf(product.getPrice()) + " VNĐ");
+        Label productPrice = new Label(product.getPrice() + " VNĐ");
         productPrice.setTextAlignment(TextAlignment.CENTER);
         productPrice.setAlignment(Pos.CENTER);
         productPrice.setStyle("-fx-font-family: Arial;");
@@ -97,7 +93,7 @@ public class ProductAndBranchPane {
         pane.getChildren().add(btnAddProd);
 
 
-        btnAddProd.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        btnAddProd.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 System.out.println(getClass() + " btn add prod clicked");
@@ -131,24 +127,20 @@ public class ProductAndBranchPane {
         tq.setLayoutY(2);
         tq.setText("0");
         paneQuantity.getChildren().add(tq);
-        tq.textProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observable, String oldValue,
-                                String newValue) {
-                if (btnAddProd.isDisable()) {
-                    tq.setText("0");
-                    return;
-                }
-                if (newValue.equals("")) {
-                    tq.setText("0");
-                    return;
-                }
-                if (!newValue.matches("\\d*")) {
-                    tq.setText(newValue.replaceAll("[^\\d]", ""));
-                }
-                if (Integer.parseInt(newValue) > Integer.parseInt(stock.getText().replaceAll("\\D+", ""))) {
-                    tq.setText(stock.getText().replaceAll("\\D+", ""));
-                }
+        tq.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (btnAddProd.isDisable()) {
+                tq.setText("0");
+                return;
+            }
+            if (newValue.equals("")) {
+                tq.setText("0");
+                return;
+            }
+            if (!newValue.matches("\\d*")) {
+                tq.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if (Integer.parseInt(newValue) > Integer.parseInt(stock.getText().replaceAll("\\D+", ""))) {
+                tq.setText(stock.getText().replaceAll("\\D+", ""));
             }
         });
 
@@ -160,27 +152,23 @@ public class ProductAndBranchPane {
         iMinus.setLayoutY(5);
         paneQuantity.getChildren().add(iMinus);
 
-        iMinus.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        iMinus.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            if (btnAddProd.isDisable()) {
+                return;
+            }
 
-            @Override
-            public void handle(MouseEvent event) {
-                if (btnAddProd.isDisable()) {
-                    return;
+            // decrease quantity by 1
+            String preQuantityStr = tq.getText();
+            try {
+                int quantity = Integer.parseInt(preQuantityStr);
+                quantity -= 1;
+
+                if (quantity >= 0) {
+                    tq.setText(String.valueOf(quantity));
                 }
-
-                // decrease quantity by 1
-                String preQuantityStr = tq.getText();
-                try {
-                    int quantity = Integer.parseInt(preQuantityStr);
-                    quantity -= 1;
-
-                    if (quantity >= 0) {
-                        tq.setText(String.valueOf(quantity));
-                    }
-                } catch (NumberFormatException e) {
-                    e.printStackTrace();
-                    tq.setText("0");
-                }
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+                tq.setText("0");
             }
         });
 
@@ -192,31 +180,27 @@ public class ProductAndBranchPane {
         iAdd.setLayoutY(5);
         paneQuantity.getChildren().add(iAdd);
 
-        iAdd.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        iAdd.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            if (btnAddProd.isDisable()) {
+                return;
+            }
 
-            @Override
-            public void handle(MouseEvent event) {
-                if (btnAddProd.isDisable()) {
-                    return;
+            // increase quantity by 1
+            String preQuantityStr = tq.getText();
+            try {
+                int quantity = Integer.parseInt(preQuantityStr);
+                quantity += 1;
+
+                if (quantity <= Integer.parseInt(stock.getText().replaceAll("\\D+", ""))) {
+                    tq.setText(String.valueOf(quantity));
                 }
-
-                // increase quantity by 1
-                String preQuantityStr = tq.getText();
-                try {
-                    int quantity = Integer.parseInt(preQuantityStr);
-                    quantity += 1;
-
-                    if (quantity <= Integer.parseInt(stock.getText().replaceAll("\\D+", ""))) {
-                        tq.setText(String.valueOf(quantity));
-                    }
-                } catch (NumberFormatException e) {
-                    e.printStackTrace();
-                    tq.setText("0");
-                }
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+                tq.setText("0");
             }
         });
 
-        ComboBox comboBox = new ComboBox();
+        ComboBox<String> comboBox = new ComboBox<>();
 
         for (String key : product.inBranches.keySet()) {
             comboBox.getItems().add(product.inBranches.get(key).getFirst().getName());
