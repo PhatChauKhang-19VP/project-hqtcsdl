@@ -62,4 +62,7 @@ module pck.dbms {
 
     opens pck.dbms.fe.employee;
     exports pck.dbms.fe.employee to javafx.fxml;
+
+    opens pck.dbms.fe.driver;
+    exports pck.dbms.fe.driver to javafx.fxml;
 }

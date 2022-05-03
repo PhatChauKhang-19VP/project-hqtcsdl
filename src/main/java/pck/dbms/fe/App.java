@@ -29,14 +29,17 @@ import pck.dbms.be.user.LoginInfo;
 import pck.dbms.be.user.ROLE;
 import pck.dbms.database.DatabaseCommunication;
 import pck.dbms.fe.employee.ListContractController;
+import pck.dbms.fe.partner.features.RegisterContractController;
 import pck.dbms.fe.utils.CartDetailPane;
 import pck.dbms.fe.utils.LineNumbersCellFactory;
 import pck.dbms.fe.utils.ProductAndBranchPane;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Optional;
+import java.util.Random;
 
 /**
  * Main Application. This class handles navigation and user session.
@@ -230,6 +233,27 @@ public class App extends Application {
         Scene scene = stage.getScene();
         if (scene == null) {
             scene = new Scene(page, 800, 600);
+            stage.setScene(scene);
+        } else {
+            stage.getScene().setRoot(page);
+        }
+        stage.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+        stage.setResizable(false);
+        stage.setFullScreen(false);
+        stage.sizeToScene();
+        return page;
+    }
+
+    public Parent replaceSceneContent(String fxml, int w, int h) throws Exception {
+        FXMLLoader loader = new FXMLLoader(App.class.getResource(fxml), null, new JavaFXBuilderFactory());
+
+        Parent page = loader.load();
+
+        getInstance().loader = loader;
+
+        Scene scene = stage.getScene();
+        if (scene == null) {
+            scene = new Scene(page, w, h);
             stage.setScene(scene);
         } else {
             stage.getScene().setRoot(page);
@@ -790,7 +814,11 @@ public class App extends Application {
          * T2: partner views its orders
          */
         public static class DirtyRead1 {
+            public static String errType = errorTypes.get(ERROR_TYPE.DIRTY_READ);
+            public static int errNo = 1;
+
             public static class Error {
+                public static String demoType = "ERROR";
 
                 private static void t1_gotoHome() {
 
@@ -807,14 +835,7 @@ public class App extends Application {
                             event.consume();
                             System.out.println("icon shake");
                             new animatefx.animation.Shake(controller.imgVBack).play();
-                            Demo.gotoTranSelection("ERROR", errorTypes.get(ERROR_TYPE.DIRTY_READ), 1);
-                        });
-
-                        controller.imgVLogout.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
-                            System.out.println("Btn logout pressed in " + getInstance().getClass());
-                            event.consume();
-
-                            getInstance().gotoSignIn();
+                            Demo.gotoTranSelection(demoType, errType, errNo);
                         });
                         controller.imgVLogout.setVisible(false);
 
@@ -1190,6 +1211,8 @@ public class App extends Application {
             }
 
             public static class Fixed {
+                public static String demoType = "FIXED";
+
                 private static void t1_gotoHome() {
 
                     try {
@@ -1205,21 +1228,12 @@ public class App extends Application {
                             event.consume();
                             System.out.println("icon shake");
                             new animatefx.animation.Shake(controller.imgVBack).play();
-                            Demo.gotoTranSelection("FIXED", errorTypes.get(ERROR_TYPE.DIRTY_READ), 1);
-                        });
-
-                        controller.imgVLogout.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
-                            System.out.println("Btn logout pressed in " + getInstance().getClass());
-                            event.consume();
-
-                            getInstance().gotoSignIn();
+                            Demo.gotoTranSelection(demoType, errType, errNo);
                         });
                         controller.imgVLogout.setVisible(false);
 
                         controller.btnPlaceOrder.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
-
                             t1_gotoListPartner();
-
                         });
 
                     } catch (Exception ex) {
@@ -1241,12 +1255,6 @@ public class App extends Application {
                             t1_gotoHome();
                         });
 
-                        controller.imgVLogout.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
-                            System.out.println("Btn logout pressed in " + getInstance().getClass());
-                            event.consume();
-
-                            getInstance().gotoSignIn();
-                        });
                         controller.imgVLogout.setVisible(false);
 
                         // get list Partner
@@ -1325,12 +1333,6 @@ public class App extends Application {
                             t1_gotoListPartner();
                         });
 
-                        controller.imgVLogout.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
-                            System.out.println("Btn logout pressed in " + getInstance().getClass());
-                            event.consume();
-
-                            getInstance().gotoSignIn();
-                        });
                         controller.imgVLogout.setVisible(false);
 
                         controller.imgVCart.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<>() {
@@ -1730,6 +1732,7 @@ public class App extends Application {
 
                                                     getInstance().showNotification(getInstance().stage, "Có lỗi bất định", "bg-danger");
                                                 }
+
                                             });
                                             setGraphic(btn);
                                             setText(null);
@@ -1951,34 +1954,26 @@ public class App extends Application {
                                                     ctrl.btnAcc.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
                                                         @Override
                                                         public void handle(MouseEvent mouseEvent) {
-                                                            if (DatabaseCommunication.employee.acceptContractButFailDirtyRead2Fixed(ctrl.contract)) {
-                                                                stageCntrDetails.close();
-                                                                getInstance().showNotification(getInstance().stage, "Duyệt thành công hợp đồng " + ctrl.contract.getCID(), "bg-success");
-                                                            } else {
-                                                                getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
+
+                                                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                                            alert.setTitle("Duyệt hợp đồng");
+                                                            alert.setHeaderText("Bạn muốn duyệt hợp đồng này ?");
+
+                                                            // option != null.
+                                                            Optional<ButtonType> option = alert.showAndWait();
+
+                                                            if (option.get() == ButtonType.OK) {
+                                                                System.out.println("user chose OK");
+                                                                System.out.println("stat" + LocalDateTime.now());
+                                                                boolean flag = DatabaseCommunication.employee.acceptContractButFailDirtyRead2Fixed(ctrl.contract);
+                                                                System.out.println("end" + LocalDateTime.now());
+                                                                if (flag) {
+                                                                    stageCntrDetails.close();
+                                                                    getInstance().showNotification(getInstance().stage, "Duyệt thành công hợp đồng " + ctrl.contract.getCID(), "bg-success");
+                                                                } else {
+                                                                    getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
+                                                                }
                                                             }
-
-//                                                        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-//                                                        alert.setTitle("Duyệt hợp đồng");
-//                                                        alert.setHeaderText("Bạn muốn duyệt hợp đồng này ?");
-//
-//                                                        // option != null.
-//                                                        Optional<ButtonType> option = alert.showAndWait();
-//
-//                                                        if (option.get() == ButtonType.OK) {
-//                                                            System.out.println("user chose OK");
-//                                                            System.out.println("stat" + LocalDateTime.now());
-//                                                            boolean flag = DatabaseCommunication.employee.acceptContractButFailDirtyRead2Fixed(ctrl.contract);
-//                                                            System.out.println("end" + LocalDateTime.now());
-//                                                            if (flag){
-//                                                                stageCntrDetails.close();
-//                                                                getInstance().showNotification(getInstance().stage, "Duyệt thành công hợp đồng " + ctrl.contract.getCID(), "bg-success");
-//                                                            }
-//                                                            else {
-//                                                                getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
-//                                                            }
-//                                                        }
-
 
                                                         }
                                                     });
@@ -2099,6 +2094,2432 @@ public class App extends Application {
 
             }
         }
+
+        public static class LostUpdate1 {
+            public static String errType = errorTypes.get(ERROR_TYPE.LOST_UPDATE);
+            public static int errNo = 1;
+
+            public static class Error {
+
+                public static String demoType = "ERROR";
+
+                private static void t1_gotoHome() {
+
+                    try {
+                        App.loginInfo.setUsername("customer1");
+                        App.loginInfo.setRole(ROLE.CUSTOMER);
+                        Container.customer.setLogin(App.loginInfo);
+
+                        getInstance().replaceSceneContent("customer.home.fxml");
+
+                        pck.dbms.fe.customer.home.Controller controller = getInstance().loader.getController();
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+                            System.out.println("icon shake");
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            Demo.gotoTranSelection(demoType, errType, errNo);
+                        });
+
+                        controller.imgVLogout.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            getInstance().gotoSignIn();
+                        });
+                        controller.imgVLogout.setVisible(false);
+
+                        controller.btnPlaceOrder.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+
+                            t1_gotoListPartner();
+
+                        });
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                private static void t1_gotoListPartner() {
+                    try {
+                        getInstance().replaceSceneContent("customer.placeOrder.listPartner.fxml");
+
+                        pck.dbms.fe.customer.placeOrder.listPartner.Controller controller = getInstance().loader.getController();
+
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+                            System.out.println("icon shake");
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            t1_gotoHome();
+                        });
+
+                        controller.imgVLogout.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            getInstance().gotoSignIn();
+                        });
+                        controller.imgVLogout.setVisible(false);
+
+                        // get list Partner
+                        DatabaseCommunication.customer.getListPartner(controller.partners);
+
+                        TableView<Partner> tableView = controller.tableViewPartner;
+                        tableView.setRowFactory(param -> {
+                            return new TableRow<Partner>() {
+                                @Override
+                                public void updateIndex(int i) {
+                                    super.updateIndex(i);
+                                    setTextAlignment(TextAlignment.JUSTIFY);
+                                    setMinHeight(70);
+                                }
+                            };
+                        });
+
+                        controller.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        controller.colName.setCellValueFactory(new PropertyValueFactory<Partner, String>("name"));
+                        controller.colType.setCellValueFactory(new PropertyValueFactory<Partner, String>("productType"));
+                        controller.colRepName.setCellValueFactory(new PropertyValueFactory<Partner, String>("representativeName"));
+                        controller.colAddr.setCellValueFactory(new PropertyValueFactory<Partner, String>("addressAsString"));
+                        controller.colPhone.setCellValueFactory(new PropertyValueFactory<Partner, String>("phone"));
+                        controller.colMail.setCellValueFactory(new PropertyValueFactory<Partner, String>("mail"));
+                        Callback<TableColumn<Partner, String>, TableCell<Partner, String>> cellFactory = new Callback<>() {
+                            @Override
+                            public TableCell<Partner, String> call(final TableColumn<Partner, String> param) {
+                                return new TableCell<>() {
+
+                                    final Button btn = new Button("Chọn");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Partner partner = getTableView().getItems().get(getIndex());
+                                                System.out.println("select partner " + partner.getName());
+                                                t1_gotoListProduct(partner);
+                                            });
+                                            setGraphic(btn);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                            }
+                        };
+
+                        controller.colBtn.setCellFactory(cellFactory);
+
+                        for (String key : controller.partners.keySet()) {
+                            tableView.getItems().add(controller.partners.get(key));
+                        }
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                private static void t1_gotoListProduct(Partner partner) {
+                    try {
+
+                        getInstance().replaceSceneContent("customer.placeOrder.listProduct.fxml");
+
+                        pck.dbms.fe.customer.placeOrder.listProduct.Controller controller = getInstance().loader.getController();
+
+                        controller.partner = partner;
+
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn back pressed in " + getInstance().getClass());
+                            event.consume();
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            t1_gotoListPartner();
+                        });
+
+                        controller.imgVLogout.setVisible(false);
+
+                        controller.imgVCart.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<>() {
+
+                            @Override
+                            public void handle(MouseEvent event) {
+                                System.out.println("Btn cart pressed in " + getInstance().getClass());
+                                event.consume();
+
+                                try {
+                                    Stage stageCartDetails = new Stage();
+                                    FXMLLoader loader = new FXMLLoader(App.class.getResource("customer.placeOrder.cartDetails.fxml"), null, new JavaFXBuilderFactory());
+                                    Parent root = loader.load();
+                                    stageCartDetails.initOwner(getInstance().stage);
+                                    stageCartDetails.setScene(new Scene(root));
+                                    stageCartDetails.setTitle("Đơn hàng của bạn");
+                                    stageCartDetails.initModality(Modality.APPLICATION_MODAL);
+
+                                    stageCartDetails.getIcons().add(new Image("https://res.cloudinary.com/phatchaukhang/image/upload/v1649255070/HQTCSDL/Icon/icon-shop_d9bmh0.png"));
+                                    stageCartDetails.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+                                    stageCartDetails.setResizable(false);
+                                    stageCartDetails.setFullScreen(false);
+                                    stageCartDetails.sizeToScene();
+
+                                    //* get cart detail from server
+                                    Cart cart = new Cart();
+                                    cart.customer = Container.customer;
+                                    cart.partner = partner;
+
+                                    DatabaseCommunication.customer.getCartDetails(cart);
+
+                                    pck.dbms.fe.customer.placeOrder.listProduct.cartDetail.Controller modalCtrl = loader.getController();
+
+                                    modalCtrl.cart = cart;
+                                    modalCtrl.partner = controller.partner;
+                                    modalCtrl.partnerBranches = controller.partnerBranches;
+                                    modalCtrl.products = controller.products;
+
+                                    int col = 0, row = 0;
+                                    modalCtrl.gridPaneCartDetails.getChildren().clear();
+                                    for (CartDetail cd : cart.cartDetails) {
+                                        CartDetailPane cdp = new CartDetailPane(cd);
+
+                                        Pane pTemp = cdp.get();
+
+                                        GridPane.setConstraints(pTemp, col, row);
+                                        row++;
+
+                                        modalCtrl.gridPaneCartDetails.getChildren().add(pTemp);
+                                    }
+
+                                    modalCtrl.comboBoxPaymentMethod.getItems().addAll("Tiền mặt", "ZALOPAY", "MOMO");
+                                    modalCtrl.comboBoxPaymentMethod.setOnAction((eCBPM) -> {
+                                        Object selectedItem = modalCtrl.comboBoxPaymentMethod.getSelectionModel().getSelectedItem();
+                                        modalCtrl.paymentMethod = String.valueOf(selectedItem);
+                                        if (modalCtrl.paymentMethod.equals("Tiền mặt"))
+                                            modalCtrl.paymentMethod = "CASH";
+                                        modalCtrl.btnPlaceOrder.setDisable(false);
+                                    });
+
+                                    modalCtrl.labelTotal.setText(String.format("%f VNĐ", modalCtrl.cart.total));
+
+                                    modalCtrl.btnPlaceOrder.setDisable(true);
+                                    modalCtrl.btnPlaceOrder.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+                                        @Override
+                                        public void handle(MouseEvent event) {
+                                            System.out.println(getClass() + " btnPlaceOrder on click");
+                                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                            alert.setTitle("Xác nhận đặt hàng");
+                                            alert.setHeaderText("Bạn có chắc muốn đặt hàng ?");
+
+                                            // option != null.
+                                            Optional<ButtonType> option = alert.showAndWait();
+
+                                            if (option.get() == ButtonType.OK) {
+                                                if (DatabaseCommunication.customer.createOrderLostUpdate1ErrorT1(new Order(cart, modalCtrl.paymentMethod), cart)) {
+
+                                                    System.out.println("Đặt hàng thành công");
+                                                    stageCartDetails.close();
+
+                                                    Alert alert2 = new Alert(Alert.AlertType.INFORMATION);
+                                                    alert2.setTitle("Thông báo");
+                                                    alert2.setHeaderText("Đặt hành thành công");
+
+                                                    stageCartDetails.close();
+
+                                                    alert2.initOwner(getInstance().stage);
+
+                                                    Optional<ButtonType> option2 = alert2.showAndWait();
+
+                                                    if (option2.get() == ButtonType.OK) {
+                                                        App.Demo.LostUpdate1.Error.t1_gotoListProduct(modalCtrl.partner);
+                                                    }
+                                                } else {
+                                                    App.getInstance().showNotification(stageCartDetails, "Có lỗi xảy ra, đặt hàng thất bại", "bg-danger");
+                                                }
+                                            }
+                                        }
+                                    });
+
+                                    stageCartDetails.show();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+                        });
+
+                        // load product
+                        DatabaseCommunication.customer.getListProduct(controller.partner, controller.partnerBranches, controller.products);
+                        GridPane gp = controller.gridPaneProd;
+
+                        int row = 0, col = 0;
+                        for (String key : controller.products.keySet()) {
+                            Product p = controller.products.get(key);
+
+                            if (p.getImgSrc().contains("http")) {
+                                ProductAndBranchPane pp = new ProductAndBranchPane(p);
+
+                                Pane pTemp = pp.get();
+
+                                GridPane.setConstraints(pTemp, col, row);
+                                System.out.println(row + " " + col);
+                                gp.getChildren().add(pTemp);
+                                col += 1;
+                                if (col == 4) {
+                                    col = 0;
+                                    row += 1;
+                                }
+                            } else {
+                                p.setImgSrc("https://res.cloudinary.com/phatchaukhang/image/upload/v1649956615/HQTCSDL/product-images/product-default-list-350_nejngg.jpg");
+                                ProductAndBranchPane pp = new ProductAndBranchPane(p);
+                                Pane pTemp = pp.get();
+
+                                GridPane.setConstraints(pTemp, col, row);
+                                System.out.println(row + " " + col);
+                                gp.getChildren().add(pTemp);
+                                col += 1;
+                                if (col == 4) {
+                                    col = 0;
+                                    row += 1;
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran1() {
+                    t1_gotoHome();
+                }
+
+                // -----------------------------------------
+
+                private static void t2_gotoHome() {
+
+                    try {
+                        App.loginInfo.setUsername("customer2");
+                        App.loginInfo.setRole(ROLE.CUSTOMER);
+                        Container.customer.setLogin(App.loginInfo);
+
+                        getInstance().replaceSceneContent("customer.home.fxml");
+
+                        pck.dbms.fe.customer.home.Controller controller = getInstance().loader.getController();
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+                            System.out.println("icon shake");
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            Demo.gotoTranSelection(demoType, errType, errNo);
+                        });
+                        controller.imgVLogout.setVisible(false);
+
+                        controller.btnPlaceOrder.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+
+                            t2_gotoListPartner();
+
+                        });
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                private static void t2_gotoListPartner() {
+                    try {
+                        getInstance().replaceSceneContent("customer.placeOrder.listPartner.fxml");
+
+                        pck.dbms.fe.customer.placeOrder.listPartner.Controller controller = getInstance().loader.getController();
+
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+                            System.out.println("icon shake");
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            t2_gotoHome();
+                        });
+                        controller.imgVLogout.setVisible(false);
+
+                        // get list Partner
+                        DatabaseCommunication.customer.getListPartner(controller.partners);
+
+                        TableView<Partner> tableView = controller.tableViewPartner;
+                        tableView.setRowFactory(param -> {
+                            return new TableRow<Partner>() {
+                                @Override
+                                public void updateIndex(int i) {
+                                    super.updateIndex(i);
+                                    setTextAlignment(TextAlignment.JUSTIFY);
+                                    setMinHeight(70);
+                                }
+                            };
+                        });
+
+                        controller.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        controller.colName.setCellValueFactory(new PropertyValueFactory<Partner, String>("name"));
+                        controller.colType.setCellValueFactory(new PropertyValueFactory<Partner, String>("productType"));
+                        controller.colRepName.setCellValueFactory(new PropertyValueFactory<Partner, String>("representativeName"));
+                        controller.colAddr.setCellValueFactory(new PropertyValueFactory<Partner, String>("addressAsString"));
+                        controller.colPhone.setCellValueFactory(new PropertyValueFactory<Partner, String>("phone"));
+                        controller.colMail.setCellValueFactory(new PropertyValueFactory<Partner, String>("mail"));
+                        Callback<TableColumn<Partner, String>, TableCell<Partner, String>> cellFactory = new Callback<>() {
+                            @Override
+                            public TableCell<Partner, String> call(final TableColumn<Partner, String> param) {
+                                return new TableCell<>() {
+
+                                    final Button btn = new Button("Chọn");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Partner partner = getTableView().getItems().get(getIndex());
+                                                System.out.println("select partner " + partner.getName());
+                                                t2_gotoListProduct(partner);
+                                            });
+                                            setGraphic(btn);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                            }
+                        };
+
+                        controller.colBtn.setCellFactory(cellFactory);
+
+                        for (String key : controller.partners.keySet()) {
+                            tableView.getItems().add(controller.partners.get(key));
+                        }
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                private static void t2_gotoListProduct(Partner partner) {
+                    try {
+
+                        getInstance().replaceSceneContent("customer.placeOrder.listProduct.fxml");
+
+                        pck.dbms.fe.customer.placeOrder.listProduct.Controller controller = getInstance().loader.getController();
+
+                        controller.partner = partner;
+
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn back pressed in " + getInstance().getClass());
+                            event.consume();
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            t2_gotoListPartner();
+                        });
+
+                        controller.imgVLogout.setVisible(false);
+
+                        controller.imgVCart.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<>() {
+
+                            @Override
+                            public void handle(MouseEvent event) {
+                                System.out.println("Btn cart pressed in " + getInstance().getClass());
+                                event.consume();
+
+                                try {
+                                    Stage stageCartDetails = new Stage();
+                                    FXMLLoader loader = new FXMLLoader(App.class.getResource("customer.placeOrder.cartDetails.fxml"), null, new JavaFXBuilderFactory());
+                                    Parent root = loader.load();
+                                    stageCartDetails.initOwner(getInstance().stage);
+                                    stageCartDetails.setScene(new Scene(root));
+                                    stageCartDetails.setTitle("Đơn hàng của bạn");
+                                    stageCartDetails.initModality(Modality.APPLICATION_MODAL);
+
+                                    stageCartDetails.getIcons().add(new Image("https://res.cloudinary.com/phatchaukhang/image/upload/v1649255070/HQTCSDL/Icon/icon-shop_d9bmh0.png"));
+                                    stageCartDetails.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+                                    stageCartDetails.setResizable(false);
+                                    stageCartDetails.setFullScreen(false);
+                                    stageCartDetails.sizeToScene();
+
+                                    //* get cart detail from server
+                                    Cart cart = new Cart();
+                                    cart.customer = Container.customer;
+                                    cart.partner = partner;
+
+                                    DatabaseCommunication.customer.getCartDetails(cart);
+
+                                    pck.dbms.fe.customer.placeOrder.listProduct.cartDetail.Controller modalCtrl = loader.getController();
+
+                                    modalCtrl.cart = cart;
+                                    modalCtrl.partner = controller.partner;
+                                    modalCtrl.partnerBranches = controller.partnerBranches;
+                                    modalCtrl.products = controller.products;
+
+                                    int col = 0, row = 0;
+                                    modalCtrl.gridPaneCartDetails.getChildren().clear();
+                                    for (CartDetail cd : cart.cartDetails) {
+                                        CartDetailPane cdp = new CartDetailPane(cd);
+
+                                        Pane pTemp = cdp.get();
+
+                                        GridPane.setConstraints(pTemp, col, row);
+                                        row++;
+
+                                        modalCtrl.gridPaneCartDetails.getChildren().add(pTemp);
+                                    }
+
+                                    modalCtrl.comboBoxPaymentMethod.getItems().addAll("Tiền mặt", "ZALOPAY", "MOMO");
+                                    modalCtrl.comboBoxPaymentMethod.setOnAction((eCBPM) -> {
+                                        Object selectedItem = modalCtrl.comboBoxPaymentMethod.getSelectionModel().getSelectedItem();
+                                        modalCtrl.paymentMethod = String.valueOf(selectedItem);
+                                        if (modalCtrl.paymentMethod.equals("Tiền mặt"))
+                                            modalCtrl.paymentMethod = "CASH";
+                                        modalCtrl.btnPlaceOrder.setDisable(false);
+                                    });
+
+                                    modalCtrl.labelTotal.setText(String.format("%f VNĐ", modalCtrl.cart.total));
+
+                                    modalCtrl.btnPlaceOrder.setDisable(true);
+                                    modalCtrl.btnPlaceOrder.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+                                        @Override
+                                        public void handle(MouseEvent event) {
+                                            System.out.println(getClass() + " btnPlaceOrder on click");
+                                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                            alert.setTitle("Xác nhận đặt hàng");
+                                            alert.setHeaderText("Bạn có chắc muốn đặt hàng ?");
+
+                                            // option != null.
+                                            Optional<ButtonType> option = alert.showAndWait();
+
+                                            if (option.get() == ButtonType.OK) {
+                                                if (DatabaseCommunication.customer.createOrderLostUpdate1ErrorT2(new Order(cart, modalCtrl.paymentMethod), cart)) {
+
+                                                    System.out.println("Đặt hàng thành công");
+                                                    stageCartDetails.close();
+
+                                                    Alert alert2 = new Alert(Alert.AlertType.INFORMATION);
+                                                    alert2.setTitle("Thông báo");
+                                                    alert2.setHeaderText("Đặt hành thành công");
+
+                                                    stageCartDetails.close();
+
+                                                    alert2.initOwner(getInstance().stage);
+
+                                                    Optional<ButtonType> option2 = alert2.showAndWait();
+
+                                                    if (option2.get() == ButtonType.OK) {
+                                                        App.Demo.LostUpdate1.Error.t2_gotoListProduct(modalCtrl.partner);
+                                                    }
+                                                } else {
+                                                    App.getInstance().showNotification(stageCartDetails, "Có lỗi xảy ra, đặt hàng thất bại", "bg-danger");
+                                                }
+                                            }
+                                        }
+                                    });
+
+                                    stageCartDetails.show();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+                        });
+
+                        // load product
+                        DatabaseCommunication.customer.getListProduct(controller.partner, controller.partnerBranches, controller.products);
+                        GridPane gp = controller.gridPaneProd;
+
+                        int row = 0, col = 0;
+                        for (String key : controller.products.keySet()) {
+                            Product p = controller.products.get(key);
+
+                            if (p.getImgSrc().contains("http")) {
+                                ProductAndBranchPane pp = new ProductAndBranchPane(p);
+
+                                Pane pTemp = pp.get();
+
+                                GridPane.setConstraints(pTemp, col, row);
+                                System.out.println(row + " " + col);
+                                gp.getChildren().add(pTemp);
+                                col += 1;
+                                if (col == 4) {
+                                    col = 0;
+                                    row += 1;
+                                }
+                            } else {
+                                p.setImgSrc("https://res.cloudinary.com/phatchaukhang/image/upload/v1649956615/HQTCSDL/product-images/product-default-list-350_nejngg.jpg");
+                                ProductAndBranchPane pp = new ProductAndBranchPane(p);
+                                Pane pTemp = pp.get();
+
+                                GridPane.setConstraints(pTemp, col, row);
+                                System.out.println(row + " " + col);
+                                gp.getChildren().add(pTemp);
+                                col += 1;
+                                if (col == 4) {
+                                    col = 0;
+                                    row += 1;
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran2() {
+                    t2_gotoHome();
+                }
+            }
+
+            // =========================================================
+
+            public static class Fixed {
+                public static String demoType = "FIXED";
+
+                private static void t1_gotoHome() {
+
+                    try {
+                        App.loginInfo.setUsername("customer1");
+                        App.loginInfo.setRole(ROLE.CUSTOMER);
+                        Container.customer.setLogin(App.loginInfo);
+
+                        getInstance().replaceSceneContent("customer.home.fxml");
+
+                        pck.dbms.fe.customer.home.Controller controller = getInstance().loader.getController();
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+                            System.out.println("icon shake");
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            Demo.gotoTranSelection(demoType, errType, errNo);
+                        });
+
+                        controller.imgVLogout.setVisible(false);
+
+                        controller.btnPlaceOrder.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+
+                            t1_gotoListPartner();
+
+                        });
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                private static void t1_gotoListPartner() {
+                    try {
+                        getInstance().replaceSceneContent("customer.placeOrder.listPartner.fxml");
+
+                        pck.dbms.fe.customer.placeOrder.listPartner.Controller controller = getInstance().loader.getController();
+
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+                            System.out.println("icon shake");
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            t1_gotoHome();
+                        });
+
+                        controller.imgVLogout.setVisible(false);
+
+                        // get list Partner
+                        DatabaseCommunication.customer.getListPartner(controller.partners);
+
+                        TableView<Partner> tableView = controller.tableViewPartner;
+                        tableView.setRowFactory(param -> {
+                            return new TableRow<Partner>() {
+                                @Override
+                                public void updateIndex(int i) {
+                                    super.updateIndex(i);
+                                    setTextAlignment(TextAlignment.JUSTIFY);
+                                    setMinHeight(70);
+                                }
+                            };
+                        });
+
+                        controller.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        controller.colName.setCellValueFactory(new PropertyValueFactory<Partner, String>("name"));
+                        controller.colType.setCellValueFactory(new PropertyValueFactory<Partner, String>("productType"));
+                        controller.colRepName.setCellValueFactory(new PropertyValueFactory<Partner, String>("representativeName"));
+                        controller.colAddr.setCellValueFactory(new PropertyValueFactory<Partner, String>("addressAsString"));
+                        controller.colPhone.setCellValueFactory(new PropertyValueFactory<Partner, String>("phone"));
+                        controller.colMail.setCellValueFactory(new PropertyValueFactory<Partner, String>("mail"));
+                        Callback<TableColumn<Partner, String>, TableCell<Partner, String>> cellFactory = new Callback<>() {
+                            @Override
+                            public TableCell<Partner, String> call(final TableColumn<Partner, String> param) {
+                                return new TableCell<>() {
+
+                                    final Button btn = new Button("Chọn");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Partner partner = getTableView().getItems().get(getIndex());
+                                                System.out.println("select partner " + partner.getName());
+                                                t1_gotoListProduct(partner);
+                                            });
+                                            setGraphic(btn);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                            }
+                        };
+
+                        controller.colBtn.setCellFactory(cellFactory);
+
+                        for (String key : controller.partners.keySet()) {
+                            tableView.getItems().add(controller.partners.get(key));
+                        }
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                private static void t1_gotoListProduct(Partner partner) {
+                    try {
+
+                        getInstance().replaceSceneContent("customer.placeOrder.listProduct.fxml");
+
+                        pck.dbms.fe.customer.placeOrder.listProduct.Controller controller = getInstance().loader.getController();
+
+                        controller.partner = partner;
+
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn back pressed in " + getInstance().getClass());
+                            event.consume();
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            t1_gotoListPartner();
+                        });
+
+                        controller.imgVLogout.setVisible(false);
+
+                        controller.imgVCart.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<>() {
+
+                            @Override
+                            public void handle(MouseEvent event) {
+                                System.out.println("Btn cart pressed in " + getInstance().getClass());
+                                event.consume();
+
+                                try {
+                                    Stage stageCartDetails = new Stage();
+                                    FXMLLoader loader = new FXMLLoader(App.class.getResource("customer.placeOrder.cartDetails.fxml"), null, new JavaFXBuilderFactory());
+                                    Parent root = loader.load();
+                                    stageCartDetails.initOwner(getInstance().stage);
+                                    stageCartDetails.setScene(new Scene(root));
+                                    stageCartDetails.setTitle("Đơn hàng của bạn");
+                                    stageCartDetails.initModality(Modality.APPLICATION_MODAL);
+
+                                    stageCartDetails.getIcons().add(new Image("https://res.cloudinary.com/phatchaukhang/image/upload/v1649255070/HQTCSDL/Icon/icon-shop_d9bmh0.png"));
+                                    stageCartDetails.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+                                    stageCartDetails.setResizable(false);
+                                    stageCartDetails.setFullScreen(false);
+                                    stageCartDetails.sizeToScene();
+
+                                    //* get cart detail from server
+                                    Cart cart = new Cart();
+                                    cart.customer = Container.customer;
+                                    cart.partner = partner;
+
+                                    DatabaseCommunication.customer.getCartDetails(cart);
+
+                                    pck.dbms.fe.customer.placeOrder.listProduct.cartDetail.Controller modalCtrl = loader.getController();
+
+                                    modalCtrl.cart = cart;
+                                    modalCtrl.partner = controller.partner;
+                                    modalCtrl.partnerBranches = controller.partnerBranches;
+                                    modalCtrl.products = controller.products;
+
+                                    int col = 0, row = 0;
+                                    modalCtrl.gridPaneCartDetails.getChildren().clear();
+                                    for (CartDetail cd : cart.cartDetails) {
+                                        CartDetailPane cdp = new CartDetailPane(cd);
+
+                                        Pane pTemp = cdp.get();
+
+                                        GridPane.setConstraints(pTemp, col, row);
+                                        row++;
+
+                                        modalCtrl.gridPaneCartDetails.getChildren().add(pTemp);
+                                    }
+
+                                    modalCtrl.comboBoxPaymentMethod.getItems().addAll("Tiền mặt", "ZALOPAY", "MOMO");
+                                    modalCtrl.comboBoxPaymentMethod.setOnAction((eCBPM) -> {
+                                        Object selectedItem = modalCtrl.comboBoxPaymentMethod.getSelectionModel().getSelectedItem();
+                                        modalCtrl.paymentMethod = String.valueOf(selectedItem);
+                                        if (modalCtrl.paymentMethod.equals("Tiền mặt"))
+                                            modalCtrl.paymentMethod = "CASH";
+                                        modalCtrl.btnPlaceOrder.setDisable(false);
+                                    });
+
+                                    modalCtrl.labelTotal.setText(String.format("%f VNĐ", modalCtrl.cart.total));
+
+                                    modalCtrl.btnPlaceOrder.setDisable(true);
+                                    modalCtrl.btnPlaceOrder.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+                                        @Override
+                                        public void handle(MouseEvent event) {
+                                            System.out.println(getClass() + " btnPlaceOrder on click");
+                                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                            alert.setTitle("Xác nhận đặt hàng");
+                                            alert.setHeaderText("Bạn có chắc muốn đặt hàng ?");
+
+                                            // option != null.
+                                            Optional<ButtonType> option = alert.showAndWait();
+
+                                            if (option.get() == ButtonType.OK) {
+                                                if (DatabaseCommunication.customer.createOrderLostUpdate1FixedT1(new Order(cart, modalCtrl.paymentMethod), cart)) {
+
+                                                    System.out.println("Đặt hàng thành công");
+                                                    stageCartDetails.close();
+
+                                                    Alert alert2 = new Alert(Alert.AlertType.INFORMATION);
+                                                    alert2.setTitle("Thông báo");
+                                                    alert2.setHeaderText("Đặt hành thành công");
+
+                                                    stageCartDetails.close();
+
+                                                    alert2.initOwner(getInstance().stage);
+
+                                                    Optional<ButtonType> option2 = alert2.showAndWait();
+
+                                                    if (option2.get() == ButtonType.OK) {
+                                                        App.Demo.LostUpdate1.Error.t1_gotoListProduct(modalCtrl.partner);
+                                                    }
+                                                } else {
+                                                    App.getInstance().showNotification(stageCartDetails, "Có lỗi xảy ra, đặt hàng thất bại", "bg-danger");
+                                                }
+                                            }
+                                        }
+                                    });
+
+                                    stageCartDetails.show();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+                        });
+
+                        // load product
+                        DatabaseCommunication.customer.getListProduct(controller.partner, controller.partnerBranches, controller.products);
+                        GridPane gp = controller.gridPaneProd;
+
+                        int row = 0, col = 0;
+                        for (String key : controller.products.keySet()) {
+                            Product p = controller.products.get(key);
+
+                            if (p.getImgSrc().contains("http")) {
+                                ProductAndBranchPane pp = new ProductAndBranchPane(p);
+
+                                Pane pTemp = pp.get();
+
+                                GridPane.setConstraints(pTemp, col, row);
+                                System.out.println(row + " " + col);
+                                gp.getChildren().add(pTemp);
+                                col += 1;
+                                if (col == 4) {
+                                    col = 0;
+                                    row += 1;
+                                }
+                            } else {
+                                p.setImgSrc("https://res.cloudinary.com/phatchaukhang/image/upload/v1649956615/HQTCSDL/product-images/product-default-list-350_nejngg.jpg");
+                                ProductAndBranchPane pp = new ProductAndBranchPane(p);
+                                Pane pTemp = pp.get();
+
+                                GridPane.setConstraints(pTemp, col, row);
+                                System.out.println(row + " " + col);
+                                gp.getChildren().add(pTemp);
+                                col += 1;
+                                if (col == 4) {
+                                    col = 0;
+                                    row += 1;
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran1() {
+                    t1_gotoHome();
+                }
+
+                // -----------------------------------------
+
+                private static void t2_gotoHome() {
+
+                    try {
+                        App.loginInfo.setUsername("customer2");
+                        App.loginInfo.setRole(ROLE.CUSTOMER);
+                        Container.customer.setLogin(App.loginInfo);
+
+                        getInstance().replaceSceneContent("customer.home.fxml");
+
+                        pck.dbms.fe.customer.home.Controller controller = getInstance().loader.getController();
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+                            System.out.println("icon shake");
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            Demo.gotoTranSelection(demoType, errType, errNo);
+                        });
+                        controller.imgVLogout.setVisible(false);
+
+                        controller.btnPlaceOrder.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+
+                            t2_gotoListPartner();
+
+                        });
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                private static void t2_gotoListPartner() {
+                    try {
+                        getInstance().replaceSceneContent("customer.placeOrder.listPartner.fxml");
+
+                        pck.dbms.fe.customer.placeOrder.listPartner.Controller controller = getInstance().loader.getController();
+
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+                            System.out.println("icon shake");
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            t2_gotoHome();
+                        });
+                        controller.imgVLogout.setVisible(false);
+
+                        // get list Partner
+                        DatabaseCommunication.customer.getListPartner(controller.partners);
+
+                        TableView<Partner> tableView = controller.tableViewPartner;
+                        tableView.setRowFactory(param -> {
+                            return new TableRow<Partner>() {
+                                @Override
+                                public void updateIndex(int i) {
+                                    super.updateIndex(i);
+                                    setTextAlignment(TextAlignment.JUSTIFY);
+                                    setMinHeight(70);
+                                }
+                            };
+                        });
+
+                        controller.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        controller.colName.setCellValueFactory(new PropertyValueFactory<Partner, String>("name"));
+                        controller.colType.setCellValueFactory(new PropertyValueFactory<Partner, String>("productType"));
+                        controller.colRepName.setCellValueFactory(new PropertyValueFactory<Partner, String>("representativeName"));
+                        controller.colAddr.setCellValueFactory(new PropertyValueFactory<Partner, String>("addressAsString"));
+                        controller.colPhone.setCellValueFactory(new PropertyValueFactory<Partner, String>("phone"));
+                        controller.colMail.setCellValueFactory(new PropertyValueFactory<Partner, String>("mail"));
+                        Callback<TableColumn<Partner, String>, TableCell<Partner, String>> cellFactory = new Callback<>() {
+                            @Override
+                            public TableCell<Partner, String> call(final TableColumn<Partner, String> param) {
+                                return new TableCell<>() {
+
+                                    final Button btn = new Button("Chọn");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Partner partner = getTableView().getItems().get(getIndex());
+                                                System.out.println("select partner " + partner.getName());
+                                                t2_gotoListProduct(partner);
+                                            });
+                                            setGraphic(btn);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                            }
+                        };
+
+                        controller.colBtn.setCellFactory(cellFactory);
+
+                        for (String key : controller.partners.keySet()) {
+                            tableView.getItems().add(controller.partners.get(key));
+                        }
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                private static void t2_gotoListProduct(Partner partner) {
+                    try {
+
+                        getInstance().replaceSceneContent("customer.placeOrder.listProduct.fxml");
+
+                        pck.dbms.fe.customer.placeOrder.listProduct.Controller controller = getInstance().loader.getController();
+
+                        controller.partner = partner;
+
+                        controller.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn back pressed in " + getInstance().getClass());
+                            event.consume();
+                            new animatefx.animation.Shake(controller.imgVBack).play();
+                            t2_gotoListPartner();
+                        });
+
+                        controller.imgVLogout.setVisible(false);
+
+                        controller.imgVCart.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<>() {
+
+                            @Override
+                            public void handle(MouseEvent event) {
+                                System.out.println("Btn cart pressed in " + getInstance().getClass());
+                                event.consume();
+
+                                try {
+                                    Stage stageCartDetails = new Stage();
+                                    FXMLLoader loader = new FXMLLoader(App.class.getResource("customer.placeOrder.cartDetails.fxml"), null, new JavaFXBuilderFactory());
+                                    Parent root = loader.load();
+                                    stageCartDetails.initOwner(getInstance().stage);
+                                    stageCartDetails.setScene(new Scene(root));
+                                    stageCartDetails.setTitle("Đơn hàng của bạn");
+                                    stageCartDetails.initModality(Modality.APPLICATION_MODAL);
+
+                                    stageCartDetails.getIcons().add(new Image("https://res.cloudinary.com/phatchaukhang/image/upload/v1649255070/HQTCSDL/Icon/icon-shop_d9bmh0.png"));
+                                    stageCartDetails.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+                                    stageCartDetails.setResizable(false);
+                                    stageCartDetails.setFullScreen(false);
+                                    stageCartDetails.sizeToScene();
+
+                                    //* get cart detail from server
+                                    Cart cart = new Cart();
+                                    cart.customer = Container.customer;
+                                    cart.partner = partner;
+
+                                    DatabaseCommunication.customer.getCartDetails(cart);
+
+                                    pck.dbms.fe.customer.placeOrder.listProduct.cartDetail.Controller modalCtrl = loader.getController();
+
+                                    modalCtrl.cart = cart;
+                                    modalCtrl.partner = controller.partner;
+                                    modalCtrl.partnerBranches = controller.partnerBranches;
+                                    modalCtrl.products = controller.products;
+
+                                    int col = 0, row = 0;
+                                    modalCtrl.gridPaneCartDetails.getChildren().clear();
+                                    for (CartDetail cd : cart.cartDetails) {
+                                        CartDetailPane cdp = new CartDetailPane(cd);
+
+                                        Pane pTemp = cdp.get();
+
+                                        GridPane.setConstraints(pTemp, col, row);
+                                        row++;
+
+                                        modalCtrl.gridPaneCartDetails.getChildren().add(pTemp);
+                                    }
+
+                                    modalCtrl.comboBoxPaymentMethod.getItems().addAll("Tiền mặt", "ZALOPAY", "MOMO");
+                                    modalCtrl.comboBoxPaymentMethod.setOnAction((eCBPM) -> {
+                                        Object selectedItem = modalCtrl.comboBoxPaymentMethod.getSelectionModel().getSelectedItem();
+                                        modalCtrl.paymentMethod = String.valueOf(selectedItem);
+                                        if (modalCtrl.paymentMethod.equals("Tiền mặt"))
+                                            modalCtrl.paymentMethod = "CASH";
+                                        modalCtrl.btnPlaceOrder.setDisable(false);
+                                    });
+
+                                    modalCtrl.labelTotal.setText(String.format("%f VNĐ", modalCtrl.cart.total));
+
+                                    modalCtrl.btnPlaceOrder.setDisable(true);
+                                    modalCtrl.btnPlaceOrder.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+                                        @Override
+                                        public void handle(MouseEvent event) {
+                                            System.out.println(getClass() + " btnPlaceOrder on click");
+                                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                            alert.setTitle("Xác nhận đặt hàng");
+                                            alert.setHeaderText("Bạn có chắc muốn đặt hàng ?");
+
+                                            // option != null.
+                                            Optional<ButtonType> option = alert.showAndWait();
+
+                                            if (option.get() == ButtonType.OK) {
+                                                if (DatabaseCommunication.customer.createOrderLostUpdate1FixedT2(new Order(cart, modalCtrl.paymentMethod), cart)) {
+
+                                                    System.out.println("Đặt hàng thành công");
+                                                    stageCartDetails.close();
+
+                                                    Alert alert2 = new Alert(Alert.AlertType.INFORMATION);
+                                                    alert2.setTitle("Thông báo");
+                                                    alert2.setHeaderText("Đặt hành thành công");
+
+                                                    stageCartDetails.close();
+
+                                                    alert2.initOwner(getInstance().stage);
+
+                                                    Optional<ButtonType> option2 = alert2.showAndWait();
+
+                                                    if (option2.get() == ButtonType.OK) {
+                                                        App.Demo.LostUpdate1.Error.t2_gotoListProduct(modalCtrl.partner);
+                                                    }
+                                                } else {
+                                                    App.getInstance().showNotification(stageCartDetails, "Có lỗi xảy ra, đặt hàng thất bại", "bg-danger");
+                                                }
+                                            }
+                                        }
+                                    });
+
+                                    stageCartDetails.show();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+                        });
+
+                        // load product
+                        DatabaseCommunication.customer.getListProduct(controller.partner, controller.partnerBranches, controller.products);
+                        GridPane gp = controller.gridPaneProd;
+
+                        int row = 0, col = 0;
+                        for (String key : controller.products.keySet()) {
+                            Product p = controller.products.get(key);
+
+                            if (p.getImgSrc().contains("http")) {
+                                ProductAndBranchPane pp = new ProductAndBranchPane(p);
+
+                                Pane pTemp = pp.get();
+
+                                GridPane.setConstraints(pTemp, col, row);
+                                System.out.println(row + " " + col);
+                                gp.getChildren().add(pTemp);
+                                col += 1;
+                                if (col == 4) {
+                                    col = 0;
+                                    row += 1;
+                                }
+                            } else {
+                                p.setImgSrc("https://res.cloudinary.com/phatchaukhang/image/upload/v1649956615/HQTCSDL/product-images/product-default-list-350_nejngg.jpg");
+                                ProductAndBranchPane pp = new ProductAndBranchPane(p);
+                                Pane pTemp = pp.get();
+
+                                GridPane.setConstraints(pTemp, col, row);
+                                System.out.println(row + " " + col);
+                                gp.getChildren().add(pTemp);
+                                col += 1;
+                                if (col == 4) {
+                                    col = 0;
+                                    row += 1;
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran2() {
+                    t2_gotoHome();
+                }
+            }
+        }
+
+        public static class Phantom2 {
+            public static String errType = errorTypes.get(ERROR_TYPE.PHANTOM);
+            public static int errNo = 2;
+
+            public static class Error {
+                public static String demoType = "ERROR";
+
+                public static void t1_gotoHome() {
+                    try {
+                        getInstance().replaceSceneContent("employee.home.fxml");
+                        App.loginInfo.setUsername("employee1");
+                        App.loginInfo.setRole(ROLE.EMPLOYEE);
+                        Container.partner.setLogin(App.loginInfo);
+
+                        pck.dbms.fe.employee.HomeController ctrl = getInstance().loader.getController();
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            Demo.gotoTranSelection(demoType, errType, errNo);
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+                        ctrl.btnPnMng.setDisable(true);
+
+                        ctrl.btnCntrMng.addEventHandler(MouseEvent.MOUSE_CLICKED, mouseEvent -> {
+                            System.out.println("btnCntrMng clickled at " + getInstance().getClass());
+
+                            t1_gotoListContract();
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void t1_gotoListContract() {
+                    try {
+                        getInstance().replaceSceneContent("employee.listContract.fxml");
+                        App.loginInfo.setUsername("employee1");
+                        App.loginInfo.setRole(ROLE.EMPLOYEE);
+                        Container.partner.setLogin(App.loginInfo);
+
+                        ListContractController ctrl = getInstance().loader.getController();
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn back pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            t1_gotoHome();
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+                        ctrl.btnAcceptAll.setDisable(false);
+                        ctrl.btnAcceptAll.setOnAction(actionEvent -> {
+                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+
+                            int ctrNum = ctrl.contractHashMap.size();
+
+                            alert.setTitle("Xác nhận");
+                            alert.setHeaderText("Bạn có chắc muốn duyệt " + ctrNum + " hợp đồng");
+
+                            Optional<ButtonType> option2 = alert.showAndWait();
+
+                            if (option2.get() == ButtonType.OK) {
+                                String accRes = DatabaseCommunication.employee.acceptAllContractPhantom2Error(ctrl.contractHashMap);
+                                if (accRes.equals("success")) {
+                                    getInstance().showNotification(getInstance().stage, "Đã duyệt " + ctrl.contractHashMap.size() + " hợp đồng", "bg-success");
+                                } else if (accRes.contains("phantom")) {
+                                    getInstance().showNotification(getInstance().stage, accRes, "bg-warning");
+                                } else {
+                                    getInstance().showNotification(getInstance().stage, "Có lỗi bất định: " + accRes, "bg-danger");
+                                }
+                                t1_gotoListContract_noReset();
+                            }
+                        });
+
+
+                        // set up table view
+                        Contract c = new Contract();
+
+                        ctrl.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        ctrl.colCID.setCellValueFactory(new PropertyValueFactory<Contract, String>("CID"));
+                        ctrl.colName.setCellValueFactory(new PropertyValueFactory<Contract, String>("partnerName"));
+                        ctrl.colRepName.setCellValueFactory(new PropertyValueFactory<Contract, String>("repName"));
+                        ctrl.colAddr.setCellValueFactory(new PropertyValueFactory<Contract, String>("partnerAddress"));
+                        ctrl.colStat.setCellValueFactory(new PropertyValueFactory<Contract, String>("status"));
+                        Callback<TableColumn<Contract, String>, TableCell<Contract, String>> cellFactory = new Callback<>() {
+                            @Override
+                            public TableCell<Contract, String> call(final TableColumn<Contract, String> param) {
+                                return new TableCell<Contract, String>() {
+
+                                    final Button btn = new Button("Chi tiết");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Contract contract = getTableView().getItems().get(getIndex());
+                                                System.out.println("btn detail clicked");
+
+                                                try {
+                                                    Stage stageCntrDetails = new Stage();
+                                                    FXMLLoader loader = new FXMLLoader(App.class.getResource("employee.contractDetail.fxml"), null, new JavaFXBuilderFactory());
+                                                    Parent root = loader.load();
+                                                    stageCntrDetails.initOwner(getInstance().stage);
+                                                    stageCntrDetails.setScene(new Scene(root));
+                                                    stageCntrDetails.setTitle("Chi tiết hợp đồng");
+                                                    stageCntrDetails.initModality(Modality.NONE);
+
+                                                    stageCntrDetails.getIcons().add(new Image("https://res.cloudinary.com/phatchaukhang/image/upload/v1649255070/HQTCSDL/Icon/icon-shop_d9bmh0.png"));
+                                                    stageCntrDetails.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+                                                    stageCntrDetails.setResizable(false);
+                                                    stageCntrDetails.setFullScreen(false);
+                                                    stageCntrDetails.sizeToScene();
+
+                                                    pck.dbms.fe.employee.ContractDetailController ctrl = loader.getController();
+                                                    ctrl.contract = contract;
+
+                                                    // set value
+                                                    ctrl.lblPnName.setText(ctrl.contract.getPartnerName());
+                                                    ctrl.lblPnAddr.setText(ctrl.contract.getPartner().getAddress().toString());
+                                                    ctrl.lblPhone.setText(ctrl.contract.getPartner().getPhone());
+                                                    ctrl.lblMail.setText(ctrl.contract.getPartner().getMail());
+                                                    ctrl.lblBranchNum.setText(String.valueOf(ctrl.contract.getPartner().getBranchNumber()));
+                                                    ctrl.lblOrdNum.setText(String.valueOf(ctrl.contract.getPartner().getOrderNumber()));
+                                                    ctrl.lblProdType.setText(ctrl.contract.getPartner().getProductType());
+                                                    ctrl.lblTIN.setText(ctrl.contract.getTIN());
+                                                    ctrl.lblComm.setText(String.format("%.2f", ctrl.contract.getCommission() * 100) + " %");
+                                                    ctrl.lblAccStat.setText(contract.getStatus().equals("ACCEPTED") ? "Đã duyệt" : "Chưa duyệt");
+                                                    ctrl.lblAccStat.getStyleClass().add(contract.getStatus().equals("ACCEPTED") ? "text-success" : "text-danger");
+                                                    ctrl.lblCA.setText(ctrl.contract.getCreatedAt().toString());
+                                                    ctrl.lblEA.setText(ctrl.contract.getExpiredAt().toString());
+
+                                                    ctrl.btnAcc.addEventHandler(MouseEvent.MOUSE_CLICKED, btnAccEvent -> {
+                                                        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                                        alert.setTitle("Duyệt hợp đồng");
+                                                        alert.setHeaderText("Bạn muốn duyệt hợp đồng này ?");
+
+                                                        // option != null.
+                                                        Optional<ButtonType> option = alert.showAndWait();
+
+                                                        if (option.isPresent() && option.get() == ButtonType.OK) {
+                                                            if (DatabaseCommunication.employee.acceptContractButFailDirtyRead2Error(ctrl.contract)) {
+                                                                stageCntrDetails.close();
+                                                                getInstance().showNotification(getInstance().stage, "Duyệt thành công hợp đồng " + ctrl.contract.getCID(), "bg-success");
+                                                            } else {
+                                                                getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
+                                                            }
+                                                        }
+
+                                                    });
+                                                    ctrl.btnRej.setDisable(true);
+
+                                                    stageCntrDetails.show();
+                                                } catch (IOException e) {
+                                                    e.printStackTrace();
+
+                                                    getInstance().showNotification(getInstance().stage, "Có lỗi bất định", "bg-danger");
+                                                }
+                                            });
+                                            setGraphic(btn);
+                                            btn.setDisable(true);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                            }
+                        };
+
+                        ctrl.colBtn.setCellFactory(cellFactory);
+
+                        //reset all contracts to pending
+                        DatabaseCommunication.employee.resetToAllContractToPending();
+
+                        // load contract
+                        DatabaseCommunication.employee.getContracts("*", ctrl.contractHashMap);
+
+                        // add contract to table view
+                        ctrl.tableView.getItems().addAll(ctrl.contractHashMap.values());
+
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void t1_gotoListContract_noReset() {
+                    try {
+                        getInstance().replaceSceneContent("employee.listContract.fxml");
+                        App.loginInfo.setUsername("employee1");
+                        App.loginInfo.setRole(ROLE.EMPLOYEE);
+                        Container.partner.setLogin(App.loginInfo);
+
+                        ListContractController ctrl = getInstance().loader.getController();
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn back pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            t1_gotoHome();
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+                        ctrl.btnAcceptAll.setDisable(false);
+                        ctrl.btnAcceptAll.setOnAction(actionEvent -> {
+                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+
+                            int ctrNum = ctrl.contractHashMap.size();
+
+                            alert.setTitle("Xác nhận");
+                            alert.setHeaderText("Bạn có chắc muốn duyệt " + ctrNum + " hợp đồng");
+
+                            Optional<ButtonType> option2 = alert.showAndWait();
+
+                            if (option2.get() == ButtonType.OK) {
+                                String accRes = DatabaseCommunication.employee.acceptAllContractPhantom2Fixed(ctrl.contractHashMap);
+                                if (accRes.equals("success")) {
+                                    getInstance().showNotification(getInstance().stage, "Đã duyệt " + ctrl.contractHashMap.size() + " hợp đồng", "bg-success");
+                                } else if (accRes.contains("phantom")) {
+                                    getInstance().showNotification(getInstance().stage, accRes, "bg-warning");
+                                } else {
+                                    getInstance().showNotification(getInstance().stage, "Có lỗi bất định: " + accRes, "bg-danger");
+                                }
+                            }
+                        });
+
+
+                        // set up table view
+                        Contract c = new Contract();
+
+                        ctrl.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        ctrl.colCID.setCellValueFactory(new PropertyValueFactory<Contract, String>("CID"));
+                        ctrl.colName.setCellValueFactory(new PropertyValueFactory<Contract, String>("partnerName"));
+                        ctrl.colRepName.setCellValueFactory(new PropertyValueFactory<Contract, String>("repName"));
+                        ctrl.colAddr.setCellValueFactory(new PropertyValueFactory<Contract, String>("partnerAddress"));
+                        ctrl.colStat.setCellValueFactory(new PropertyValueFactory<Contract, String>("status"));
+                        Callback<TableColumn<Contract, String>, TableCell<Contract, String>> cellFactory = new Callback<>() {
+                            @Override
+                            public TableCell<Contract, String> call(final TableColumn<Contract, String> param) {
+                                return new TableCell<Contract, String>() {
+
+                                    final Button btn = new Button("Chi tiết");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Contract contract = getTableView().getItems().get(getIndex());
+                                                System.out.println("btn detail clicked");
+
+                                                try {
+                                                    Stage stageCntrDetails = new Stage();
+                                                    FXMLLoader loader = new FXMLLoader(App.class.getResource("employee.contractDetail.fxml"), null, new JavaFXBuilderFactory());
+                                                    Parent root = loader.load();
+                                                    stageCntrDetails.initOwner(getInstance().stage);
+                                                    stageCntrDetails.setScene(new Scene(root));
+                                                    stageCntrDetails.setTitle("Chi tiết hợp đồng");
+                                                    stageCntrDetails.initModality(Modality.NONE);
+
+                                                    stageCntrDetails.getIcons().add(new Image("https://res.cloudinary.com/phatchaukhang/image/upload/v1649255070/HQTCSDL/Icon/icon-shop_d9bmh0.png"));
+                                                    stageCntrDetails.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+                                                    stageCntrDetails.setResizable(false);
+                                                    stageCntrDetails.setFullScreen(false);
+                                                    stageCntrDetails.sizeToScene();
+
+                                                    pck.dbms.fe.employee.ContractDetailController ctrl = loader.getController();
+                                                    ctrl.contract = contract;
+
+                                                    // set value
+                                                    ctrl.lblPnName.setText(ctrl.contract.getPartnerName());
+                                                    ctrl.lblPnAddr.setText(ctrl.contract.getPartner().getAddress().toString());
+                                                    ctrl.lblPhone.setText(ctrl.contract.getPartner().getPhone());
+                                                    ctrl.lblMail.setText(ctrl.contract.getPartner().getMail());
+                                                    ctrl.lblBranchNum.setText(String.valueOf(ctrl.contract.getPartner().getBranchNumber()));
+                                                    ctrl.lblOrdNum.setText(String.valueOf(ctrl.contract.getPartner().getOrderNumber()));
+                                                    ctrl.lblProdType.setText(ctrl.contract.getPartner().getProductType());
+                                                    ctrl.lblTIN.setText(ctrl.contract.getTIN());
+                                                    ctrl.lblComm.setText(String.format("%.2f", ctrl.contract.getCommission() * 100) + " %");
+                                                    ctrl.lblAccStat.setText(contract.getStatus().equals("ACCEPTED") ? "Đã duyệt" : "Chưa duyệt");
+                                                    ctrl.lblAccStat.getStyleClass().add(contract.getStatus().equals("ACCEPTED") ? "text-success" : "text-danger");
+                                                    ctrl.lblCA.setText(ctrl.contract.getCreatedAt().toString());
+                                                    ctrl.lblEA.setText(ctrl.contract.getExpiredAt().toString());
+
+                                                    ctrl.btnAcc.addEventHandler(MouseEvent.MOUSE_CLICKED, btnAccEvent -> {
+                                                        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                                        alert.setTitle("Duyệt hợp đồng");
+                                                        alert.setHeaderText("Bạn muốn duyệt hợp đồng này ?");
+
+                                                        // option != null.
+                                                        Optional<ButtonType> option = alert.showAndWait();
+
+                                                        if (option.isPresent() && option.get() == ButtonType.OK) {
+                                                            if (DatabaseCommunication.employee.acceptContractButFailDirtyRead2Error(ctrl.contract)) {
+                                                                stageCntrDetails.close();
+                                                                getInstance().showNotification(getInstance().stage, "Duyệt thành công hợp đồng " + ctrl.contract.getCID(), "bg-success");
+                                                            } else {
+                                                                getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
+                                                            }
+                                                        }
+
+                                                    });
+                                                    ctrl.btnRej.setDisable(true);
+
+                                                    stageCntrDetails.show();
+                                                } catch (IOException e) {
+                                                    e.printStackTrace();
+
+                                                    getInstance().showNotification(getInstance().stage, "Có lỗi bất định", "bg-danger");
+                                                }
+                                            });
+                                            setGraphic(btn);
+                                            btn.setDisable(true);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                            }
+                        };
+
+                        ctrl.colBtn.setCellFactory(cellFactory);
+
+                        // load contract
+                        DatabaseCommunication.employee.getContracts("*", ctrl.contractHashMap);
+
+                        // add contract to table view
+                        ctrl.tableView.getItems().addAll(ctrl.contractHashMap.values());
+
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran1() {
+                    t1_gotoHome();
+                }
+
+                public static void t2_gotoRegister() {
+                    try {
+                        getInstance().replaceSceneContent("partner.registerContract.fxml", 400, 600);
+                        App.loginInfo.setUsername("partner_food");
+                        App.loginInfo.setRole(ROLE.EMPLOYEE);
+                        Container.partner.setLogin(App.loginInfo);
+
+                        RegisterContractController ctrl = getInstance().loader.getController();
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn back pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            App.Demo.gotoTranSelection(demoType, errType, errNo);
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+
+                        ctrl.lblPnName.setText(ctrl.partner.getName());
+                        ctrl.lblPnAddr.setText(ctrl.partner.getAddress().toString());
+                        ctrl.lblPhone.setText(ctrl.partner.getPhone());
+                        ctrl.lblMail.setText(ctrl.partner.getMail());
+                        ctrl.lblBranchNum.setText(String.valueOf(ctrl.partner.getBranchNumber()));
+                        ctrl.lblOrdNum.setText(String.valueOf(ctrl.partner.getOrderNumber()));
+                        ctrl.lblProdType.setText(ctrl.partner.getProductType());
+
+                        int leftLimit = '0'; // letter 'a'
+                        int rightLimit = '9'; // letter 'z'
+                        int targetStringLength = 20;
+                        Random random = new Random();
+
+                        String TIN = random.ints(leftLimit, rightLimit + 1)
+                                .limit(targetStringLength)
+                                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                                .toString();
+                        ctrl.tbTIN.setText(TIN);
+                        ctrl.dpStart.setValue(LocalDate.now());
+                        ctrl.dbCtrTime.setText("6");
+                        ctrl.tbComm.setText("10");
+
+                        ctrl.btnRegister.setOnAction((ae) -> {
+                            Contract c = new Contract();
+
+                            String CID = random.ints('a', 'z' + 1)
+                                    .limit(targetStringLength)
+                                    .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                                    .toString();
+
+                            c.setCID(CID);
+                            c.setPartner(ctrl.partner);
+                            c.setTIN(TIN);
+                            c.setCreatedAt(ctrl.dpStart.getValue().atTime(0, 0));
+                            c.setExpiredAt(ctrl.dpStart.getValue().plusMonths(Integer.parseInt(ctrl.dbCtrTime.getText())).atTime(0, 0));
+                            c.setCommission(Double.parseDouble(ctrl.tbComm.getText()) / 100);
+
+                            boolean res = DatabaseCommunication.partner.registerContractPhantom2Error(c, Integer.parseInt(ctrl.dbCtrTime.getText()));
+
+                            if (res) {
+                                getInstance().showNotification(getInstance().stage, "Tạo mới hợp đồng thành công với ID là:\n" + c.getCID(), "bg-success");
+                            } else {
+                                getInstance().showNotification(getInstance().stage, "Lỗi bất định, tạo hợp đồng thất bại", "bg-success");
+                            }
+                        });
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran2() {
+                    t2_gotoRegister();
+                }
+            }
+
+            //===================
+            public static class Fixed {
+                public static String demoType = "FIXED";
+
+                public static void t1_gotoHome() {
+                    try {
+                        getInstance().replaceSceneContent("employee.home.fxml");
+                        App.loginInfo.setUsername("employee1");
+                        App.loginInfo.setRole(ROLE.EMPLOYEE);
+                        Container.partner.setLogin(App.loginInfo);
+
+                        pck.dbms.fe.employee.HomeController ctrl = getInstance().loader.getController();
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            Demo.gotoTranSelection(demoType, errType, errNo);
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+                        ctrl.btnPnMng.setDisable(true);
+
+                        ctrl.btnCntrMng.addEventHandler(MouseEvent.MOUSE_CLICKED, mouseEvent -> {
+                            System.out.println("btnCntrMng clickled at " + getInstance().getClass());
+
+                            t1_gotoListContract();
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void t1_gotoListContract() {
+                    try {
+                        getInstance().replaceSceneContent("employee.listContract.fxml");
+                        App.loginInfo.setUsername("employee1");
+                        App.loginInfo.setRole(ROLE.EMPLOYEE);
+                        Container.partner.setLogin(App.loginInfo);
+
+                        ListContractController ctrl = getInstance().loader.getController();
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn back pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            t1_gotoHome();
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+                        ctrl.btnAcceptAll.setDisable(false);
+                        ctrl.btnAcceptAll.setOnAction(actionEvent -> {
+                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+
+                            int ctrNum = ctrl.contractHashMap.size();
+
+                            alert.setTitle("Xác nhận");
+                            alert.setHeaderText("Bạn có chắc muốn duyệt " + ctrNum + " hợp đồng");
+
+                            Optional<ButtonType> option2 = alert.showAndWait();
+
+                            if (option2.get() == ButtonType.OK) {
+                                String accRes = DatabaseCommunication.employee.acceptAllContractPhantom2Fixed(ctrl.contractHashMap);
+                                if (accRes.equals("success")) {
+                                    t1_gotoListContract_noReset();
+                                } else if (accRes.contains("phantom")) {
+                                    getInstance().showNotification(getInstance().stage, accRes, "bg-warning");
+                                } else {
+                                    getInstance().showNotification(getInstance().stage, "Có lỗi bất định: " + accRes, "bg-danger");
+                                }
+                                //t1_gotoListContract_noReset();
+                            }
+                        });
+
+
+                        // set up table view
+                        Contract c = new Contract();
+
+                        ctrl.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        ctrl.colCID.setCellValueFactory(new PropertyValueFactory<Contract, String>("CID"));
+                        ctrl.colName.setCellValueFactory(new PropertyValueFactory<Contract, String>("partnerName"));
+                        ctrl.colRepName.setCellValueFactory(new PropertyValueFactory<Contract, String>("repName"));
+                        ctrl.colAddr.setCellValueFactory(new PropertyValueFactory<Contract, String>("partnerAddress"));
+                        ctrl.colStat.setCellValueFactory(new PropertyValueFactory<Contract, String>("status"));
+                        Callback<TableColumn<Contract, String>, TableCell<Contract, String>> cellFactory = new Callback<>() {
+                            @Override
+                            public TableCell<Contract, String> call(final TableColumn<Contract, String> param) {
+                                return new TableCell<Contract, String>() {
+
+                                    final Button btn = new Button("Chi tiết");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Contract contract = getTableView().getItems().get(getIndex());
+                                                System.out.println("btn detail clicked");
+
+                                                try {
+                                                    Stage stageCntrDetails = new Stage();
+                                                    FXMLLoader loader = new FXMLLoader(App.class.getResource("employee.contractDetail.fxml"), null, new JavaFXBuilderFactory());
+                                                    Parent root = loader.load();
+                                                    stageCntrDetails.initOwner(getInstance().stage);
+                                                    stageCntrDetails.setScene(new Scene(root));
+                                                    stageCntrDetails.setTitle("Chi tiết hợp đồng");
+                                                    stageCntrDetails.initModality(Modality.NONE);
+
+                                                    stageCntrDetails.getIcons().add(new Image("https://res.cloudinary.com/phatchaukhang/image/upload/v1649255070/HQTCSDL/Icon/icon-shop_d9bmh0.png"));
+                                                    stageCntrDetails.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+                                                    stageCntrDetails.setResizable(false);
+                                                    stageCntrDetails.setFullScreen(false);
+                                                    stageCntrDetails.sizeToScene();
+
+                                                    pck.dbms.fe.employee.ContractDetailController ctrl = loader.getController();
+                                                    ctrl.contract = contract;
+
+                                                    // set value
+                                                    ctrl.lblPnName.setText(ctrl.contract.getPartnerName());
+                                                    ctrl.lblPnAddr.setText(ctrl.contract.getPartner().getAddress().toString());
+                                                    ctrl.lblPhone.setText(ctrl.contract.getPartner().getPhone());
+                                                    ctrl.lblMail.setText(ctrl.contract.getPartner().getMail());
+                                                    ctrl.lblBranchNum.setText(String.valueOf(ctrl.contract.getPartner().getBranchNumber()));
+                                                    ctrl.lblOrdNum.setText(String.valueOf(ctrl.contract.getPartner().getOrderNumber()));
+                                                    ctrl.lblProdType.setText(ctrl.contract.getPartner().getProductType());
+                                                    ctrl.lblTIN.setText(ctrl.contract.getTIN());
+                                                    ctrl.lblComm.setText(String.format("%.2f", ctrl.contract.getCommission() * 100) + " %");
+                                                    ctrl.lblAccStat.setText(contract.getStatus().equals("ACCEPTED") ? "Đã duyệt" : "Chưa duyệt");
+                                                    ctrl.lblAccStat.getStyleClass().add(contract.getStatus().equals("ACCEPTED") ? "text-success" : "text-danger");
+                                                    ctrl.lblCA.setText(ctrl.contract.getCreatedAt().toString());
+                                                    ctrl.lblEA.setText(ctrl.contract.getExpiredAt().toString());
+
+                                                    ctrl.btnAcc.addEventHandler(MouseEvent.MOUSE_CLICKED, btnAccEvent -> {
+                                                        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                                        alert.setTitle("Duyệt hợp đồng");
+                                                        alert.setHeaderText("Bạn muốn duyệt hợp đồng này ?");
+
+                                                        // option != null.
+                                                        Optional<ButtonType> option = alert.showAndWait();
+
+                                                        if (option.isPresent() && option.get() == ButtonType.OK) {
+                                                            if (DatabaseCommunication.employee.acceptContractButFailDirtyRead2Error(ctrl.contract)) {
+                                                                stageCntrDetails.close();
+                                                                getInstance().showNotification(getInstance().stage, "Duyệt thành công hợp đồng " + ctrl.contract.getCID(), "bg-success");
+                                                            } else {
+                                                                getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
+                                                            }
+                                                        }
+
+                                                    });
+                                                    ctrl.btnRej.setDisable(true);
+
+                                                    stageCntrDetails.show();
+                                                } catch (IOException e) {
+                                                    e.printStackTrace();
+
+                                                    getInstance().showNotification(getInstance().stage, "Có lỗi bất định", "bg-danger");
+                                                }
+                                            });
+                                            setGraphic(btn);
+                                            btn.setDisable(true);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                            }
+                        };
+
+                        ctrl.colBtn.setCellFactory(cellFactory);
+
+                        //reset all contracts to pending
+                        DatabaseCommunication.employee.resetToAllContractToPending();
+
+                        // load contract
+                        DatabaseCommunication.employee.getContracts("*", ctrl.contractHashMap);
+
+                        // add contract to table view
+                        ctrl.tableView.getItems().addAll(ctrl.contractHashMap.values());
+
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void t1_gotoListContract_noReset() {
+                    try {
+                        getInstance().replaceSceneContent("employee.listContract.fxml");
+                        App.loginInfo.setUsername("employee1");
+                        App.loginInfo.setRole(ROLE.EMPLOYEE);
+                        Container.partner.setLogin(App.loginInfo);
+
+                        ListContractController ctrl = getInstance().loader.getController();
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn back pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            t1_gotoHome();
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+                        ctrl.btnAcceptAll.setDisable(false);
+                        ctrl.btnAcceptAll.setOnAction(actionEvent -> {
+                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+
+                            int ctrNum = ctrl.contractHashMap.size();
+
+                            alert.setTitle("Xác nhận");
+                            alert.setHeaderText("Bạn có chắc muốn duyệt " + ctrNum + " hợp đồng");
+
+                            Optional<ButtonType> option2 = alert.showAndWait();
+
+                            if (option2.get() == ButtonType.OK) {
+                                String accRes = DatabaseCommunication.employee.acceptAllContractPhantom2Fixed(ctrl.contractHashMap);
+                                if (accRes.equals("success")) {
+                                    getInstance().showNotification(getInstance().stage, "Đã duyệt " + ctrl.contractHashMap.size() + " hợp đồng", "bg-success");
+                                } else if (accRes.contains("phantom")) {
+                                    getInstance().showNotification(getInstance().stage, accRes, "bg-warning");
+                                } else {
+                                    getInstance().showNotification(getInstance().stage, "Có lỗi bất định: " + accRes, "bg-danger");
+                                }
+                            }
+                        });
+
+
+                        // set up table view
+                        Contract c = new Contract();
+
+                        ctrl.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        ctrl.colCID.setCellValueFactory(new PropertyValueFactory<Contract, String>("CID"));
+                        ctrl.colName.setCellValueFactory(new PropertyValueFactory<Contract, String>("partnerName"));
+                        ctrl.colRepName.setCellValueFactory(new PropertyValueFactory<Contract, String>("repName"));
+                        ctrl.colAddr.setCellValueFactory(new PropertyValueFactory<Contract, String>("partnerAddress"));
+                        ctrl.colStat.setCellValueFactory(new PropertyValueFactory<Contract, String>("status"));
+                        Callback<TableColumn<Contract, String>, TableCell<Contract, String>> cellFactory = new Callback<>() {
+                            @Override
+                            public TableCell<Contract, String> call(final TableColumn<Contract, String> param) {
+                                return new TableCell<Contract, String>() {
+
+                                    final Button btn = new Button("Chi tiết");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Contract contract = getTableView().getItems().get(getIndex());
+                                                System.out.println("btn detail clicked");
+
+                                                try {
+                                                    Stage stageCntrDetails = new Stage();
+                                                    FXMLLoader loader = new FXMLLoader(App.class.getResource("employee.contractDetail.fxml"), null, new JavaFXBuilderFactory());
+                                                    Parent root = loader.load();
+                                                    stageCntrDetails.initOwner(getInstance().stage);
+                                                    stageCntrDetails.setScene(new Scene(root));
+                                                    stageCntrDetails.setTitle("Chi tiết hợp đồng");
+                                                    stageCntrDetails.initModality(Modality.NONE);
+
+                                                    stageCntrDetails.getIcons().add(new Image("https://res.cloudinary.com/phatchaukhang/image/upload/v1649255070/HQTCSDL/Icon/icon-shop_d9bmh0.png"));
+                                                    stageCntrDetails.getScene().getStylesheets().add(BootstrapFX.bootstrapFXStylesheet());
+                                                    stageCntrDetails.setResizable(false);
+                                                    stageCntrDetails.setFullScreen(false);
+                                                    stageCntrDetails.sizeToScene();
+
+                                                    pck.dbms.fe.employee.ContractDetailController ctrl = loader.getController();
+                                                    ctrl.contract = contract;
+
+                                                    // set value
+                                                    ctrl.lblPnName.setText(ctrl.contract.getPartnerName());
+                                                    ctrl.lblPnAddr.setText(ctrl.contract.getPartner().getAddress().toString());
+                                                    ctrl.lblPhone.setText(ctrl.contract.getPartner().getPhone());
+                                                    ctrl.lblMail.setText(ctrl.contract.getPartner().getMail());
+                                                    ctrl.lblBranchNum.setText(String.valueOf(ctrl.contract.getPartner().getBranchNumber()));
+                                                    ctrl.lblOrdNum.setText(String.valueOf(ctrl.contract.getPartner().getOrderNumber()));
+                                                    ctrl.lblProdType.setText(ctrl.contract.getPartner().getProductType());
+                                                    ctrl.lblTIN.setText(ctrl.contract.getTIN());
+                                                    ctrl.lblComm.setText(String.format("%.2f", ctrl.contract.getCommission() * 100) + " %");
+                                                    ctrl.lblAccStat.setText(contract.getStatus().equals("ACCEPTED") ? "Đã duyệt" : "Chưa duyệt");
+                                                    ctrl.lblAccStat.getStyleClass().add(contract.getStatus().equals("ACCEPTED") ? "text-success" : "text-danger");
+                                                    ctrl.lblCA.setText(ctrl.contract.getCreatedAt().toString());
+                                                    ctrl.lblEA.setText(ctrl.contract.getExpiredAt().toString());
+
+                                                    ctrl.btnAcc.addEventHandler(MouseEvent.MOUSE_CLICKED, btnAccEvent -> {
+                                                        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                                        alert.setTitle("Duyệt hợp đồng");
+                                                        alert.setHeaderText("Bạn muốn duyệt hợp đồng này ?");
+
+                                                        // option != null.
+                                                        Optional<ButtonType> option = alert.showAndWait();
+
+                                                        if (option.isPresent() && option.get() == ButtonType.OK) {
+                                                            if (DatabaseCommunication.employee.acceptContractButFailDirtyRead2Error(ctrl.contract)) {
+                                                                stageCntrDetails.close();
+                                                                getInstance().showNotification(getInstance().stage, "Duyệt thành công hợp đồng " + ctrl.contract.getCID(), "bg-success");
+                                                            } else {
+                                                                getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
+                                                            }
+                                                        }
+
+                                                    });
+                                                    ctrl.btnRej.setDisable(true);
+
+                                                    stageCntrDetails.show();
+                                                } catch (IOException e) {
+                                                    e.printStackTrace();
+
+                                                    getInstance().showNotification(getInstance().stage, "Có lỗi bất định", "bg-danger");
+                                                }
+                                            });
+                                            setGraphic(btn);
+                                            btn.setDisable(true);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                            }
+                        };
+
+                        ctrl.colBtn.setCellFactory(cellFactory);
+
+                        // load contract
+                        DatabaseCommunication.employee.getContracts("*", ctrl.contractHashMap);
+
+                        // add contract to table view
+                        ctrl.tableView.getItems().addAll(ctrl.contractHashMap.values());
+
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran1() {
+                    t1_gotoHome();
+                }
+
+                public static void t2_gotoRegister() {
+                    try {
+                        getInstance().replaceSceneContent("partner.registerContract.fxml", 400, 600);
+                        App.loginInfo.setUsername("partner_food");
+                        App.loginInfo.setRole(ROLE.EMPLOYEE);
+                        Container.partner.setLogin(App.loginInfo);
+
+                        RegisterContractController ctrl = getInstance().loader.getController();
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn back pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            App.Demo.gotoTranSelection(demoType, errType, errNo);
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+
+                        ctrl.lblPnName.setText(ctrl.partner.getName());
+                        ctrl.lblPnAddr.setText(ctrl.partner.getAddress().toString());
+                        ctrl.lblPhone.setText(ctrl.partner.getPhone());
+                        ctrl.lblMail.setText(ctrl.partner.getMail());
+                        ctrl.lblBranchNum.setText(String.valueOf(ctrl.partner.getBranchNumber()));
+                        ctrl.lblOrdNum.setText(String.valueOf(ctrl.partner.getOrderNumber()));
+                        ctrl.lblProdType.setText(ctrl.partner.getProductType());
+
+                        int leftLimit = '0'; // letter 'a'
+                        int rightLimit = '9'; // letter 'z'
+                        int targetStringLength = 20;
+                        Random random = new Random();
+
+                        String TIN = random.ints(leftLimit, rightLimit + 1)
+                                .limit(targetStringLength)
+                                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                                .toString();
+                        ctrl.tbTIN.setText(TIN);
+                        ctrl.dpStart.setValue(LocalDate.now());
+                        ctrl.dbCtrTime.setText("6");
+                        ctrl.tbComm.setText("10");
+
+                        ctrl.btnRegister.setOnAction((ae) -> {
+                            Contract c = new Contract();
+
+                            String CID = random.ints('a', 'z' + 1)
+                                    .limit(targetStringLength)
+                                    .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                                    .toString();
+
+                            c.setCID(CID);
+                            c.setPartner(ctrl.partner);
+                            c.setTIN(TIN);
+                            c.setCreatedAt(ctrl.dpStart.getValue().atTime(0, 0));
+                            c.setExpiredAt(ctrl.dpStart.getValue().plusMonths(Integer.parseInt(ctrl.dbCtrTime.getText())).atTime(0, 0));
+                            c.setCommission(Double.parseDouble(ctrl.tbComm.getText()) / 100);
+
+                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+
+                            alert.setTitle("Tạo hợp đồng");
+                            alert.setHeaderText("Bạn có chắc muốn tạo hợp đồng");
+
+                            Optional<ButtonType> option2 = alert.showAndWait();
+
+                            if (option2.get() == ButtonType.OK) {
+                                boolean res = DatabaseCommunication.partner.registerContractPhantom2Fixed(c, Integer.parseInt(ctrl.dbCtrTime.getText()));
+
+                                if (res) {
+                                    getInstance().showNotification(getInstance().stage, "Tạo mới hợp đồng thành công với ID là:\n" + c.getCID(), "bg-success");
+                                } else {
+                                    getInstance().showNotification(getInstance().stage, "Lỗi bất định, tạo hợp đồng thất bại", "bg-success");
+                                }
+                            }
+                        });
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran2() {
+                    t2_gotoRegister();
+                }
+            }
+        }
+
+        public static class NonRepeatableRead2 {
+            public static String errType = errorTypes.get(ERROR_TYPE.NON_REPEATABLE_READ);
+            public static int errNo = 2;
+
+            public static class Error {
+                public static String demoType = "ERROR";
+
+                public static void gotoReceiveOrder() {
+                    try {
+                        getInstance().replaceSceneContent("driver.receiveOrders.fxml");
+
+                        pck.dbms.fe.driver.GetOrdersController ctrl = getInstance().loader.getController();
+
+                        ctrl.driver.getLogin().setUsername("phatnm.driver1");
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            gotoTranSelection(demoType, errType, errNo);
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+
+                        // get order list from DB
+                        DatabaseCommunication.driver.getOrdersInActiveArea(ctrl.driver, ctrl.orderHashMap);
+
+                        //setting for value factory
+                        ctrl.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        ctrl.colID.setCellValueFactory(new PropertyValueFactory<Order, String>("orderID"));
+                        ctrl.colCusName.setCellValueFactory(new PropertyValueFactory<Order, String>("customerName"));
+                        ctrl.colAddr.setCellValueFactory(new PropertyValueFactory<Order, String>("customerAddress"));
+                        ctrl.colPrice.setCellValueFactory(new PropertyValueFactory<Order, String>("total"));
+                        ctrl.colPaymentMethod.setCellValueFactory(new PropertyValueFactory<Order, String>("paymentMethod"));
+                        ctrl.colPaidSta.setCellValueFactory(new PropertyValueFactory<Order, String>("paidStatus"));
+                        Callback<TableColumn<Order, String>, TableCell<Order, String>> cellFactory = new Callback<>() {
+                            @Override
+                            public TableCell call(final TableColumn<Order, String> param) {
+                                final TableCell<Order, String> cell = new TableCell<Order, String>() {
+
+                                    final Button btn = new Button("Tiếp nhận");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Order order = getTableView().getItems().get(getIndex());
+
+                                                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                                alert.setTitle("Tiếp nhận đơn hàng");
+                                                alert.setHeaderText("Bạn muốn tiếp nhận đơn hàng " + order.getOrderID() + " " + order.getPaymentMethod());
+
+                                                // option != null.
+                                                Optional<ButtonType> option = alert.showAndWait();
+
+                                                if (option.isPresent() && option.get() == ButtonType.OK) {
+                                                    // todo: driver receive order
+                                                    String res = DatabaseCommunication.driver.receiveOrderNRR2Error(ctrl.driver, order, new Order());
+                                                    if (res.equals("success")) {
+                                                        getInstance().showNotification(getInstance().stage, "Thành công", "bg-success");
+                                                    } else if (res.contains("nrr")) {
+                                                        String[] token = res.split(";");
+                                                        String msg = "Có lỗi non-repeatable read\n" + token[1];
+                                                        getInstance().showNotification(getInstance().stage, msg, "bg-warning");
+                                                    } else {
+                                                        getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
+                                                    }
+                                                }
+                                            });
+                                            setGraphic(btn);
+                                        }
+                                        setText(null);
+                                    }
+                                };
+                                return cell;
+                            }
+                        };
+
+                        ctrl.colBtn.setCellFactory(cellFactory);
+
+                        // add order to table view
+                        for (String key : ctrl.orderHashMap.keySet()) {
+                            ctrl.tableView.getItems().add(ctrl.orderHashMap.get(key));
+                        }
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran1() {
+                    gotoReceiveOrder();
+                }
+
+                public static void gotoCusOrders() {
+                    try {
+                        getInstance().replaceSceneContent("customer.ordersTracking.fxml");
+
+                        pck.dbms.fe.customer.ordersTracking.Controller ctrl = getInstance().loader.getController();
+
+                        ctrl.customer.getLogin().setUsername("customer1");
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            gotoTranSelection(demoType, errType, errNo);
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+
+                        // get order list from DB
+                        DatabaseCommunication.customer.getOrders(ctrl.customer, ctrl.hm);
+
+
+                        //setting for value factory
+                        ctrl.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        ctrl.colID.setCellValueFactory(new PropertyValueFactory<Order, String>("orderID"));
+                        ctrl.colCusName.setCellValueFactory(new PropertyValueFactory<Order, String>("customerName"));
+                        ctrl.colAddr.setCellValueFactory(new PropertyValueFactory<Order, String>("customerAddress"));
+                        ctrl.colPrice.setCellValueFactory(new PropertyValueFactory<Order, String>("total"));
+
+                        Callback<TableColumn<Order, String>, TableCell<Order, String>> cellFactoryPM = new Callback<>() {
+                            @Override
+                            public TableCell<Order, String> call(final TableColumn<Order, String> param) {
+
+                                return new TableCell<>() {
+
+                                    final ComboBox<String> pmCb = new ComboBox<>();
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            Order order = getTableView().getItems().get(getIndex());
+                                            pmCb.setPromptText(order.getPaymentMethod());
+                                            if (item != null) {
+                                                setText(order.getPaymentMethod());
+                                                //System.out.println(getText());
+                                            } else System.out.println("đã có text: " + getText());
+                                            pmCb.getItems().clear();
+                                            pmCb.getItems().addAll("Tiền mặt", "ZALOPAY", "MOMO");
+                                            pmCb.setOnAction((eCBPM) -> {
+                                                Object selectedItem = pmCb.getSelectionModel().getSelectedItem();
+                                                ctrl.paymentMethod = String.valueOf(selectedItem);
+                                                //order.setPaymentMethod(ctrl.paymentMethod);
+                                                if (ctrl.paymentMethod.equals("Tiền mặt"))
+                                                    ctrl.paymentMethod = "CASH";
+                                                this.setText(ctrl.paymentMethod);
+
+
+                                            });
+
+                                            setGraphic(pmCb);
+                                        }
+
+                                    }
+                                };
+                            }
+                        };
+
+                        ctrl.colPaymentMethod.setCellValueFactory(new PropertyValueFactory<Order, String>("paymentMethod"));
+                        ctrl.colPaymentMethod.setCellFactory(cellFactoryPM);
+
+                        //ctrl.colPaymentMethod.setComparator(Comparator.naturalOrder());
+                        ctrl.colPaidSta.setCellValueFactory(new PropertyValueFactory<Order, String>("paidStatus"));
+                        Callback<TableColumn<Order, String>, TableCell<Order, String>> cellFactoryBtn = new Callback<>() {
+                            @Override
+                            public TableCell call(final TableColumn<Order, String> param) {
+                                final TableCell<Order, String> cell = new TableCell<>() {
+
+                                    final Button btn = new Button("Cập nhật");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Order order = getTableView().getItems().get(getIndex());
+
+                                                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                                alert.setTitle("Cập nhật đơn hàng");
+                                                alert.setHeaderText("Bạn muốn cập nhật phương thức thanh toán\n" + order.getPaymentMethod() + " -> " + ctrl.paymentMethod);
+
+                                                // option != null.
+                                                Optional<ButtonType> option = alert.showAndWait();
+
+                                                if (option.isPresent() && option.get() == ButtonType.OK) {
+                                                    boolean res = DatabaseCommunication.customer.updateOrderPMNRR2Error(order, ctrl.paymentMethod);
+
+                                                    if (res) {
+                                                        getInstance().showNotification(getInstance().stage, "Thành công", "bg-success");
+                                                    } else {
+                                                        getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
+                                                    }
+                                                }
+                                            });
+                                            setGraphic(btn);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                                return cell;
+                            }
+                        };
+
+                        ctrl.colBtn.setCellFactory(cellFactoryBtn);
+                        // add order to table view
+                        System.out.println(ctrl.hm.size());
+                        ctrl.tableView.getItems().addAll(ctrl.hm.values());
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran2() {
+                    gotoCusOrders();
+                }
+            }
+
+            public static class Fixed {
+                public static String demoType = "FIXED";
+
+                public static void gotoReceiveOrder() {
+                    try {
+                        getInstance().replaceSceneContent("driver.receiveOrders.fxml");
+
+                        pck.dbms.fe.driver.GetOrdersController ctrl = getInstance().loader.getController();
+
+                        ctrl.driver.getLogin().setUsername("phatnm.driver1");
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            gotoTranSelection(demoType, errType, errNo);
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+
+                        // get order list from DB
+                        DatabaseCommunication.driver.getOrdersInActiveArea(ctrl.driver, ctrl.orderHashMap);
+
+                        //setting for value factory
+                        ctrl.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        ctrl.colID.setCellValueFactory(new PropertyValueFactory<Order, String>("orderID"));
+                        ctrl.colCusName.setCellValueFactory(new PropertyValueFactory<Order, String>("customerName"));
+                        ctrl.colAddr.setCellValueFactory(new PropertyValueFactory<Order, String>("customerAddress"));
+                        ctrl.colPrice.setCellValueFactory(new PropertyValueFactory<Order, String>("total"));
+                        ctrl.colPaymentMethod.setCellValueFactory(new PropertyValueFactory<Order, String>("paymentMethod"));
+                        ctrl.colPaidSta.setCellValueFactory(new PropertyValueFactory<Order, String>("paidStatus"));
+                        Callback<TableColumn<Order, String>, TableCell<Order, String>> cellFactory = new Callback<>() {
+                            @Override
+                            public TableCell call(final TableColumn<Order, String> param) {
+                                final TableCell<Order, String> cell = new TableCell<Order, String>() {
+
+                                    final Button btn = new Button("Tiếp nhận");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Order order = getTableView().getItems().get(getIndex());
+
+                                                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                                alert.setTitle("Tiếp nhận đơn hàng");
+                                                alert.setHeaderText("Bạn muốn tiếp nhận đơn hàng " + order.getOrderID() + " " + order.getPaymentMethod());
+
+                                                // option != null.
+                                                Optional<ButtonType> option = alert.showAndWait();
+
+                                                if (option.isPresent() && option.get() == ButtonType.OK) {
+                                                    // todo: driver receive order
+                                                    String res = DatabaseCommunication.driver.receiveOrderNRR2Fixed(ctrl.driver, order, new Order());
+                                                    if (res.equals("success")) {
+                                                        getInstance().showNotification(getInstance().stage, "Thành công", "bg-success");
+                                                    } else if (res.contains("nrr")) {
+                                                        String[] token = res.split(";");
+                                                        String msg = "Có lỗi non-repeatable read\n" + token[1];
+                                                        getInstance().showNotification(getInstance().stage, msg, "bg-warning");
+                                                    } else {
+                                                        getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
+                                                    }
+                                                }
+                                            });
+                                            setGraphic(btn);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                                return cell;
+                            }
+                        };
+
+                        ctrl.colBtn.setCellFactory(cellFactory);
+
+                        // add order to table view
+                        for (String key : ctrl.orderHashMap.keySet()) {
+                            ctrl.tableView.getItems().add(ctrl.orderHashMap.get(key));
+                        }
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran1() {
+                    gotoReceiveOrder();
+                }
+
+                public static void gotoCusOrders() {
+                    try {
+                        getInstance().replaceSceneContent("customer.ordersTracking.fxml");
+
+                        pck.dbms.fe.customer.ordersTracking.Controller ctrl = getInstance().loader.getController();
+
+                        ctrl.customer.getLogin().setUsername("customer1");
+
+                        ctrl.imgVBack.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                            System.out.println("Btn logout pressed in " + getInstance().getClass());
+                            event.consume();
+
+                            gotoTranSelection(demoType, errType, errNo);
+                        });
+                        ctrl.imgVLogout.setVisible(false);
+
+                        // get order list from DB
+                        DatabaseCommunication.customer.getOrders(ctrl.customer, ctrl.hm);
+
+
+                        //setting for value factory
+                        ctrl.colNO.setCellFactory(new LineNumbersCellFactory<>());
+                        ctrl.colID.setCellValueFactory(new PropertyValueFactory<Order, String>("orderID"));
+                        ctrl.colCusName.setCellValueFactory(new PropertyValueFactory<Order, String>("customerName"));
+                        ctrl.colAddr.setCellValueFactory(new PropertyValueFactory<Order, String>("customerAddress"));
+                        ctrl.colPrice.setCellValueFactory(new PropertyValueFactory<Order, String>("total"));
+
+                        Callback<TableColumn<Order, String>, TableCell<Order, String>> cellFactoryPM = new Callback<>() {
+                            @Override
+                            public TableCell<Order, String> call(final TableColumn<Order, String> param) {
+
+                                return new TableCell<>() {
+
+                                    final ComboBox<String> pmCb = new ComboBox<>();
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            Order order = getTableView().getItems().get(getIndex());
+                                            pmCb.setPromptText(order.getPaymentMethod());
+                                            if (item != null) {
+                                                setText(order.getPaymentMethod());
+                                                //System.out.println(getText());
+                                            } else System.out.println("đã có text: " + getText());
+                                            pmCb.getItems().clear();
+                                            pmCb.getItems().addAll("Tiền mặt", "ZALOPAY", "MOMO");
+                                            pmCb.setOnAction((eCBPM) -> {
+                                                Object selectedItem = pmCb.getSelectionModel().getSelectedItem();
+                                                ctrl.paymentMethod = String.valueOf(selectedItem);
+                                                //order.setPaymentMethod(ctrl.paymentMethod);
+                                                if (ctrl.paymentMethod.equals("Tiền mặt"))
+                                                    ctrl.paymentMethod = "CASH";
+                                                this.setText(ctrl.paymentMethod);
+
+
+                                            });
+
+                                            setGraphic(pmCb);
+                                        }
+
+                                    }
+                                };
+                            }
+                        };
+
+                        ctrl.colPaymentMethod.setCellValueFactory(new PropertyValueFactory<Order, String>("paymentMethod"));
+                        ctrl.colPaymentMethod.setCellFactory(cellFactoryPM);
+
+                        //ctrl.colPaymentMethod.setComparator(Comparator.naturalOrder());
+                        ctrl.colPaidSta.setCellValueFactory(new PropertyValueFactory<Order, String>("paidStatus"));
+                        Callback<TableColumn<Order, String>, TableCell<Order, String>> cellFactoryBtn = new Callback<>() {
+                            @Override
+                            public TableCell call(final TableColumn<Order, String> param) {
+                                final TableCell<Order, String> cell = new TableCell<>() {
+
+                                    final Button btn = new Button("Cập nhật");
+
+                                    @Override
+                                    public void updateItem(String item, boolean empty) {
+                                        super.updateItem(item, empty);
+                                        if (empty) {
+                                            setGraphic(null);
+                                            setText(null);
+                                        } else {
+                                            btn.setOnAction(event -> {
+                                                Order order = getTableView().getItems().get(getIndex());
+
+                                                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                                                alert.setTitle("Cập nhật đơn hàng");
+                                                alert.setHeaderText("Bạn muốn cập nhật phương thức thanh toán\n" + order.getPaymentMethod() + " -> " + ctrl.paymentMethod);
+
+                                                // option != null.
+                                                Optional<ButtonType> option = alert.showAndWait();
+
+                                                if (option.isPresent() && option.get() == ButtonType.OK) {
+                                                    boolean res = DatabaseCommunication.customer.updateOrderPMNRR2Fixed(order, ctrl.paymentMethod);
+
+                                                    if (res) {
+                                                        getInstance().showNotification(getInstance().stage, "Thành công", "bg-success");
+                                                    } else {
+                                                        getInstance().showNotification(getInstance().stage, "Có lỗi xảy ra, duyệt thất bại", "bg-danger");
+                                                    }
+                                                }
+                                            });
+                                            setGraphic(btn);
+                                            setText(null);
+                                        }
+                                    }
+                                };
+                                return cell;
+                            }
+                        };
+
+                        ctrl.colBtn.setCellFactory(cellFactoryBtn);
+                        // add order to table view
+                        System.out.println(ctrl.hm.size());
+                        ctrl.tableView.getItems().addAll(ctrl.hm.values());
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static void gotoTran2() {
+                    gotoCusOrders();
+                }
+            }
+        }
     }
 }
-

@@ -7,13 +7,14 @@ public class Driver {
     private LoginInfo loginInfo;
     private String name, NIN, phone, mail;
     private Address address;
-    private Driver activeAreaCode;
+    private String activeAreaCode;
     private Bank bank;
 
     public Driver() {
+        loginInfo = new LoginInfo();
     }
 
-    public Driver(LoginInfo loginInfo, String name, String NIN, String phone, String mail, Address address, Driver activeAreaCode, Bank bank) {
+    public Driver(LoginInfo loginInfo, String name, String NIN, String phone, String mail, Address address, String activeAreaCode, Bank bank) {
         this.loginInfo = loginInfo;
         this.name = name;
         this.NIN = NIN;
@@ -64,11 +65,11 @@ public class Driver {
         this.address = address;
     }
 
-    public Driver getActiveAreaCode() {
+    public String getActiveAreaCode() {
         return activeAreaCode;
     }
 
-    public void setActiveAreaCode(Driver activeAreaCode) {
+    public void setActiveAreaCode(String activeAreaCode) {
         this.activeAreaCode = activeAreaCode;
     }
 

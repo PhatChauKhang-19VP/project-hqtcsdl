@@ -1,16 +1,18 @@
-package pck.dbms.fe.customer.ordersTracking;
+package pck.dbms.fe.driver;
 
-import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.image.ImageView;
-import pck.dbms.be.customer.Customer;
+import pck.dbms.be.driver.Driver;
 import pck.dbms.be.order.Order;
 
 import java.util.HashMap;
 
-public class Controller {
-    @FXML
+public class GetOrdersController {
+
+    public Driver driver = new Driver();
+    public HashMap<String, Order> orderHashMap = new HashMap<>();
+
     public TableView tableView;
     public TableColumn colNO;
     public TableColumn colID;
@@ -22,8 +24,4 @@ public class Controller {
     public TableColumn colBtn;
     public ImageView imgVBack;
     public ImageView imgVLogout;
-
-    public Customer customer = new Customer();
-    public HashMap<String, Order> hm = new HashMap<>();
-    public String paymentMethod;
 }

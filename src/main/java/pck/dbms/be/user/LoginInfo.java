@@ -11,6 +11,11 @@ public class LoginInfo {
         role = ROLE.APP;
     }
 
+    public LoginInfo(String username,  ROLE role) {
+        this.username = username;
+        this.role = role;
+    }
+
     public LoginInfo(String username, String password, ROLE role) {
         this.username = username;
         this.password = password;

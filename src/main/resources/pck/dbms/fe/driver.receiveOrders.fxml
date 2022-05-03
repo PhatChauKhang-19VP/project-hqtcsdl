@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="pck.dbms.fe.customer.ordersTracking.Controller">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="pck.dbms.fe.driver.GetOrdersController">
     <top>
         <Pane prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #A8ACFF;" BorderPane.alignment="CENTER">
             <children>
@@ -36,25 +36,24 @@
     </bottom>
     <center>
         <Pane prefHeight="600.0" prefWidth="800.0" BorderPane.alignment="CENTER">
-            <children>
-                <Label layoutX="248.0" layoutY="20.0" text="Theo dõi đơn hàng">
-                    <font>
-                        <Font name="Arial" size="36.0" />
-                    </font>
-                </Label>
-                <TableView fx:id="tableView" layoutY="100.0" prefHeight="350.0" prefWidth="800.0">
-                    <columns>
-                        <TableColumn fx:id="colNO" prefWidth="30.0" resizable="false" text="STT" />
-                        <TableColumn fx:id="colID" prefWidth="130.0" resizable="false" text="Mã đơn hàng" />
-                        <TableColumn fx:id="colCusName" prefWidth="100.0" resizable="false" text="Tên khách hàng" />
-                        <TableColumn fx:id="colAddr" prefWidth="150.0" text="Địa chỉ giao hàng" />
-                        <TableColumn fx:id="colPrice" prefWidth="60.0" resizable="false" text="Tổng tiền" />
-                        <TableColumn fx:id="colPaymentMethod" prefWidth="110.0" resizable="false" text="Trả bằng" />
-                        <TableColumn fx:id="colPaidSta" resizable="false" text="Thanh toán" />
-                        <TableColumn fx:id="colBtn" prefWidth="120.0" resizable="false" />
-                    </columns>
-                </TableView>
-            </children>
+            <Label layoutX="20.0" layoutY="60.0" text="Danh sách đơn hàng" />
+            <TableView fx:id="tableView" layoutY="100.0" prefHeight="350.0" prefWidth="800.0">
+                <columns>
+                    <TableColumn fx:id="colNO" prefWidth="30.0" resizable="false" text="STT" />
+                    <TableColumn fx:id="colID" prefWidth="130.0" resizable="false" text="Mã đơn hàng" />
+                    <TableColumn fx:id="colCusName" prefWidth="100.0" resizable="false" text="Tên khách hàng" />
+                    <TableColumn fx:id="colAddr" prefWidth="150.0" text="Địa chỉ giao hàng" />
+                    <TableColumn fx:id="colPrice" prefWidth="90.0" resizable="false" text="Tổng tiền" />
+                    <TableColumn fx:id="colPaymentMethod" resizable="false" text="Trả bằng" />
+                    <TableColumn fx:id="colPaidSta" resizable="false" text="Thanh toán" />
+                    <TableColumn fx:id="colBtn" prefWidth="120.0" resizable="false" />
+                </columns>
+            </TableView>
+            <Label layoutX="252.0" layoutY="15.0" text="Tài xế tiếp nhận đơn hàng">
+                <font>
+                    <Font name="System Bold" size="24.0" />
+                </font>
+            </Label>
         </Pane>
     </center>
 </BorderPane>

@@ -13,6 +13,8 @@ import pck.dbms.be.partner.PartnerBranch;
 import pck.dbms.be.product.Product;
 import pck.dbms.be.user.LoginInfo;
 
+import java.time.format.DateTimeFormatter;
+
 public class USP {
     public static final String get_provinces = "exec dbo.usp_get_provinces", get_districts = "exec dbo.usp_get_districts", get_wards = "exec dbo.usp_get_wards";
 
@@ -308,6 +310,105 @@ public class USP {
             System.out.println(query);
             return query;
         }
+
+        public static String registerContractPhantom2Error(Contract contract, int contractTime) {
+            String query = "";
+
+            query += "declare @CID varchar(20) = '" + contract.getCID() + "'\n";
+            query += "declare @username varchar(50) = '" + contract.getPartner().getLogin().getUsername() + "'\n";
+            query += "declare @TIN varchar(20) = '" + contract.getTIN() + "'\n";
+            query += "declare @start_at date = '" + contract.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + "'\n";
+            query += "declare @contract_time int = " + contractTime + "\n";
+            query += "declare @commission float = " + contract.getCommission() + "\n";
+            query += """
+                    begin try
+                    		begin tran
+                    			if not exists (select c.CID from dbo.CONTRACTS as c where c.CID = @CID)
+                    				-- create new contract
+                    				begin
+                    					insert into dbo.CONTRACTS(CID, extension,username, TIN, created_at, expired_at, commission, status)
+                    					values (@CID, 0, @username ,@TIN, @start_at, DATEADD(MONTH, @contract_time, @start_at), @commission, 'PENDING')
+                    				end
+                    			else
+                    				-- extend contract time\s
+                    				begin
+                    					declare @last_expired_date datetime = (select c1.expired_at from dbo.CONTRACTS as c1\s
+                    																where c1.CID = @CID
+                    																	and c1.extension >= all (select c2.extension from dbo.CONTRACTS as c2 where c1.CID = @CID))
+                    					if (datediff(day, @last_expired_date, @start_at)) < 0
+                    						throw 52000, 'Contract still not expired at `start_at` !!!', 1
+                                        
+                    					declare @extension int = (select c1.extension from dbo.CONTRACTS as c1\s
+                    																where c1.CID = @CID
+                    																	and c1.extension >= all (select c2.extension from dbo.CONTRACTS as c2 where c2.CID = @CID))
+                    					
+                    					set @extension = @extension + 1
+                                        
+                    					insert into dbo.CONTRACTS(CID, extension, username, TIN, created_at, expired_at, commission, status)
+                    					values (@CID, @extension, @username ,@TIN, @start_at, DATEADD(MONTH, @contract_time, @start_at), @commission, 'PENDING')
+                    				end
+                    		commit tran
+                    	end try
+                    	begin catch
+                    		declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    		select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    		raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    		if (@@TRANCOUNT > 0)
+                    			rollback tran
+                    	end catch""";
+
+            return query;
+        }
+
+        public static String registerContractPhantom2Fixed(Contract contract, int contractTime) {
+            String query = "";
+
+            query += "declare @CID varchar(20) = '" + contract.getCID() + "'\n";
+            query += "declare @username varchar(50) = '" + contract.getPartner().getLogin().getUsername() + "'\n";
+            query += "declare @TIN varchar(20) = '" + contract.getTIN() + "'\n";
+            query += "declare @start_at date = '" + contract.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + "'\n";
+            query += "declare @contract_time int = " + contractTime + "\n";
+            query += "declare @commission float = " + contract.getCommission() + "\n";
+            query += """
+                    SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
+                    begin try
+                        begin tran
+                            if not exists (select c.CID from dbo.CONTRACTS as c where c.CID = @CID)
+                                -- create new contract
+                                begin
+                                    insert into dbo.CONTRACTS(CID, extension,username, TIN, created_at, expired_at, commission, status)
+                                    values (@CID, 0, @username ,@TIN, @start_at, DATEADD(MONTH, @contract_time, @start_at), @commission, 'PENDING')
+                                end
+                            else
+                                -- extend contract time\s
+                                begin
+                                    declare @last_expired_date datetime = (select c1.expired_at from dbo.CONTRACTS as c1\s
+                                                                                where c1.CID = @CID
+                                                                                    and c1.extension >= all (select c2.extension from dbo.CONTRACTS as c2 where c1.CID = @CID))
+                                    if (datediff(day, @last_expired_date, @start_at)) < 0
+                                        throw 52000, 'Contract still not expired at `start_at` !!!', 1
+                                    
+                                    declare @extension int = (select c1.extension from dbo.CONTRACTS as c1\s
+                                                                                where c1.CID = @CID
+                                                                                    and c1.extension >= all (select c2.extension from dbo.CONTRACTS as c2 where c2.CID = @CID))
+                                    
+                                    set @extension = @extension + 1
+                                    
+                                    insert into dbo.CONTRACTS(CID, extension, username, TIN, created_at, expired_at, commission, status)
+                                    values (@CID, @extension, @username ,@TIN, @start_at, DATEADD(MONTH, @contract_time, @start_at), @commission, 'PENDING')
+                                end
+                        commit tran
+                    end try
+                    begin catch
+                        declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                        select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                        raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                        if (@@TRANCOUNT > 0)
+                            rollback tran
+                    end catch""";
+
+            return query;
+        }
     }
 
     /**
@@ -359,6 +460,87 @@ public class USP {
 
             query += "'" + d.getLogin().getUsername() + "', ";
             query += "'" + o.getOrderID() + "'";
+
+            return query;
+        }
+
+        public static String receiveOrderNRR2Error(Driver d, Order in) {
+
+            String query = "declare @username varchar(50) = '" + d.getLogin().getUsername() + "'\n";
+
+            query += "declare @order_id varchar(20) = '" + in.getOrderID() + "'\n";
+            query += """
+                    begin try
+                    	begin tran                             		                   		                            
+                            select * from dbo.ORDERS as o where o.order_id=@order_id
+                                        
+                    		-- insert new record to driver history
+                    		begin
+                    			insert into dbo.DRIVER_HISTORIES
+                    				values
+                    					(@order_id, @username, 20)
+                    		end
+                    		
+                    		waitfor delay '00:00:05';
+                    		
+                    		select * from dbo.ORDERS as o where o.order_id=@order_id
+                    		
+                    		-- update order delivery_status to DELIVERING
+                    		begin
+                    			update dbo.ORDERS
+                    				set delivery_status = 'DELIVERING'
+                    				where order_id=@order_id
+                    		end
+                    	commit tran
+                    end try
+                    begin catch
+                    	declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    	select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    	raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    	if (@@TRANCOUNT > 0)
+                    		rollback tran
+                    end catch""";
+
+            return query;
+        }
+
+        public static String receiveOrderNRR2Fixed(Driver d, Order in) {
+
+            String query = "declare @username varchar(50) = '" + d.getLogin().getUsername() + "'\n";
+
+            query += "declare @order_id varchar(20) = '" + in.getOrderID() + "'\n";
+            query += """
+                    SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
+                    begin try
+                    	begin tran                             		                   		                            
+                            select * from dbo.ORDERS as o where o.order_id=@order_id
+                                        
+                    		-- insert new record to driver history
+                    		begin
+                    			insert into dbo.DRIVER_HISTORIES
+                    				values
+                    					(@order_id, @username, 20)
+                    		end
+                    		
+                    		waitfor delay '00:00:05';
+                    		
+                    		select * from dbo.ORDERS as o where o.order_id=@order_id
+                    		
+                    		-- update order delivery_status to DELIVERING
+                    		begin
+                    			update dbo.ORDERS
+                    				set delivery_status = 'DELIVERING'
+                    				where order_id=@order_id
+                    		end
+                    	commit tran
+                    end try
+                    begin catch
+                    	declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    	select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    	raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    	if (@@TRANCOUNT > 0)
+                    		rollback tran
+                    end catch""";
 
             return query;
         }
@@ -683,9 +865,9 @@ public class USP {
                     set @curr_stock = (select pib.stock
                                                     from dbo.PRODUCT_IN_BRANCHES as pib
                                                     where pib.PID = @PID and pib.PBID = @PBID)
-                    
+                                        
                     waitfor delay '00:00:05'
-                    
+                                        
                     set @new_stock = @curr_stock - @quantity
                     update dbo.PRODUCT_IN_BRANCHES
                         set stock = @new_stock
@@ -863,9 +1045,8 @@ public class USP {
             query += "set @PBID = " + "'" + od.getPartnerBranch().getPBID() + "'\n";
             query += "set @quantity = " + od.getQuantity() + "\n";
 
-            query += """
-                    SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
-                    
+            query += """ 
+                                        
                     -- kiểm tra số lượng có > 0
                     if @quantity <= 0
                         throw 52000, --Error number must be between 50000 and  2147483647.
@@ -902,10 +1083,7 @@ public class USP {
                     set @curr_stock = (select pib.stock
                                                     from dbo.PRODUCT_IN_BRANCHES as pib
                                                     where pib.PID = @PID and pib.PBID = @PBID)
-                                        
-                    waitfor delay '00:00:05'
-                                        
-                    set @new_stock = @curr_stock - @quantity
+                                                    set @new_stock = @curr_stock - @quantity
                     update dbo.PRODUCT_IN_BRANCHES
                         set stock = @new_stock
                         where PID = @PID and PBID = @PBID
@@ -938,9 +1116,11 @@ public class USP {
             query += "declare @new_stock int\n";
             query +=
                     """
-                            begin try
-                            	begin tran
-                            """;
+                    SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
+                    begin try
+                        
+                        begin tran
+                    """;
             query +=
                     """
                             insert into dbo.ORDERS(order_id, partner_username, customer_username, payment_method, delivery_status, paid_status, shipping_fee)
@@ -975,9 +1155,7 @@ public class USP {
             query += "set @PBID = " + "'" + od.getPartnerBranch().getPBID() + "'\n";
             query += "set @quantity = " + od.getQuantity() + "\n";
 
-            query += """
-                    SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
-                    
+            query += """                   
                     -- kiểm tra số lượng có > 0
                     if @quantity <= 0
                         throw 52000, --Error number must be between 50000 and  2147483647.
@@ -1047,10 +1225,12 @@ public class USP {
             query += "declare @curr_stock int\n";
             query += "declare @new_stock int\n";
             query +=
-                    """
-                            begin try
-                            	begin tran
-                            """;
+                    """     
+                    SET TRANSACTION ISOLATION LEVEL REPEATABLE READ                                                 
+                    begin try
+                        
+                        begin tran
+                    """;
             query +=
                     """
                             insert into dbo.ORDERS(order_id, partner_username, customer_username, payment_method, delivery_status, paid_status, shipping_fee)
@@ -1117,7 +1297,70 @@ public class USP {
             return query;
         }
 
+        // -----------------------------
 
+        public static String getOrders(Customer c) {
+            String query = "declare @cu varchar(20) = '" + c.getLogin().getUsername() + "'\n";
+
+            query += """
+                    select o.*, w.code as 'w_code', w.full_name, dt.code as 'dt_code', dt.full_name, pv.code as 'pv_code', pv.full_name, c.name as 'name', c.address_line
+                        from dbo.ORDERS as o
+                            join dbo.CUSTOMERS as c on o.customer_username = c.username
+                            join dbo.DRIVERS as d on c.address_district_code = d.active_area_district_code
+                            join dbo.PROVINCES as pv on c.address_province_code = pv.code
+                            join dbo.DISTRICTS as dt on c.address_district_code = dt.code
+                            join dbo.WARDS as w on c.address_ward_code = w.code
+                        where c.username = @cu""";
+
+            return query;
+        }
+
+        public static String updateOrderPMNRR2Error(Order c, String newPM){
+            String query = "declare @id varchar(20) = '" + c.getOrderID() + "'\n";
+            query += "declare @newPM varchar(20) = '" + newPM + "'\n";
+
+            query += """
+                    begin try
+                        begin tran
+                            update dbo.ORDERS
+                                set payment_method = @newPM
+                                where order_id=@id
+                        commit tran
+                    end try
+                    begin catch
+                        declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    if (@@TRANCOUNT > 0)
+                        rollback tran
+                    end catch""";
+
+            return query;
+        }
+
+        public static String updateOrderPMNRR2Fixed(Order c, String newPM){
+            String query = "declare @id varchar(20) = '" + c.getOrderID() + "'\n";
+            query += "declare @newPM varchar(20) = '" + newPM + "'\n";
+
+            query += """
+                    SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
+                    begin try
+                        begin tran
+                            update dbo.ORDERS
+                                set payment_method = @newPM
+                                where order_id=@id
+                        commit tran
+                    end try
+                    begin catch
+                        declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    if (@@TRANCOUNT > 0)
+                        rollback tran
+                    end catch""";
+
+            return query;
+        }
     }
 
     public static class employee {
@@ -1188,6 +1431,71 @@ public class USP {
 
         public static String acceptAllContract() {
             return "{call dbo.usp_employee_accept_all_contracts(?)}";
+        }
+
+        public static String acceptAllContractPhantom2Error() {
+            return """
+                    begin try
+                    	begin tran
+                    		-- lần duyệt bảng thứ nhất
+                    		declare @number_contracts_accepted int = (select count(*) from dbo.CONTRACTS
+                    					where status = 'PENDING' and is_expired = 0)
+                    		select @number_contracts_accepted as 'number_contract_accepted'
+                    		-- [TODO] A transaction to add a new contract, true output: (@number_contracts_accepted + 1)
+                    		
+                    		print 'start waiting'
+                    		waitfor delay '00:00:05'
+                    		print 'waited'
+                    		
+                    		update dbo.CONTRACTS
+                    			set status = 'ACCEPTED'
+                    			where status = 'PENDING' and is_expired = 0 -- lần duyệt bảng thứ 2
+                    		
+                    		
+                    		-- RETURN CONTRACT LISTS
+                    		
+                    		
+                    		select * from dbo.CONTRACTS
+                    	commit tran
+                    end try
+                    begin catch
+                    	declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    	select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    	raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    	if (@@TRANCOUNT > 0)
+                    		rollback tran
+                    end catch""";
+        }
+
+        public static String acceptAllContractPhantom2Fixed() {
+            return """
+                    SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
+                    begin try
+                    	begin tran
+                    		-- lần duyệt bảng thứ nhất
+                    		declare @number_contracts_accepted int = (select count(*) from dbo.CONTRACTS
+                    					where status = 'PENDING' and is_expired = 0)
+                    		select @number_contracts_accepted as 'number_contract_accepted'
+                    		-- [TODO] A transaction to add a new contract, true output: (@number_contracts_accepted + 1)
+                    		
+                    		update dbo.CONTRACTS
+                    			set status = 'ACCEPTED'
+                    			where status = 'PENDING' and is_expired = 0 -- lần duyệt bảng thứ 2
+                    		-- RETURN CONTRACT LISTS
+                    		
+                    		print 'start waiting'
+                    		waitfor delay '00:00:05'
+                    		print 'waited'
+                    		select * from dbo.CONTRACTS
+                    	commit tran
+                    end try
+                    begin catch
+                    	declare @ErrorMessage nvarchar(4000), @ErrorSeverity int, @ErrorState int;
+                    	select @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+                    	raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
+                    	if (@@TRANCOUNT > 0)
+                    		rollback tran
+                    end catch""";
         }
     }
 }

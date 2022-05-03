@@ -5,6 +5,7 @@ import pck.dbms.be.administrativeDivision.*;
 import pck.dbms.be.cart.Cart;
 import pck.dbms.be.cart.CartDetail;
 import pck.dbms.be.customer.Customer;
+import pck.dbms.be.driver.Driver;
 import pck.dbms.be.order.Order;
 import pck.dbms.be.partner.Contract;
 import pck.dbms.be.partner.Partner;
@@ -44,6 +45,7 @@ public class DatabaseCommunication {
     public static DatabaseCommunication getInstance() {
         if (instance == null) {
             instance = new DatabaseCommunication();
+            getInstance().loadAdministrativeDivision();
         }
 
         return instance;
@@ -406,7 +408,7 @@ public class DatabaseCommunication {
             }
         }
 
-        public static boolean getContractsDirtyRead2Error(HashMap<String, Contract> hm, String status, Partner partner){
+        public static boolean getContractsDirtyRead2Error(HashMap<String, Contract> hm, String status, Partner partner) {
             try {
                 getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
 
@@ -451,7 +453,7 @@ public class DatabaseCommunication {
             }
         }
 
-        public static boolean getContractsDirtyRead2Fixed(HashMap<String, Contract> hm, String status, Partner partner){
+        public static boolean getContractsDirtyRead2Fixed(HashMap<String, Contract> hm, String status, Partner partner) {
             try {
                 getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
 
@@ -493,6 +495,48 @@ public class DatabaseCommunication {
                 e.printStackTrace();
                 getInstance().close();
                 return false;
+            }
+        }
+
+        public static boolean registerContractPhantom2Error(Contract c, int month) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                String query = USP.partner.registerContractPhantom2Error(c, month);
+
+                Statement stmt = getInstance().conn.createStatement();
+
+                stmt.execute(query);
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static boolean registerContractPhantom2Fixed(Contract c, int month) {
+            try {
+
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                String query = USP.partner.registerContractPhantom2Fixed(c, month);
+
+                System.out.println(query);
+
+                Statement stmt = getInstance().conn.createStatement();
+                stmt.execute(query);
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                getInstance().close();
             }
         }
     }
@@ -543,7 +587,7 @@ public class DatabaseCommunication {
             }
         }
 
-        public static boolean acceptContractButFailDirtyRead2Error(Contract c){
+        public static boolean acceptContractButFailDirtyRead2Error(Contract c) {
             try {
                 getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
 
@@ -560,13 +604,12 @@ public class DatabaseCommunication {
                 e.printStackTrace();
                 getInstance().close();
                 return false;
-            }
-            finally {
+            } finally {
                 getInstance().close();
             }
         }
 
-        public static boolean acceptContractButFailDirtyRead2Fixed(Contract c){
+        public static boolean acceptContractButFailDirtyRead2Fixed(Contract c) {
             try {
                 getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
 
@@ -583,8 +626,7 @@ public class DatabaseCommunication {
                 e.printStackTrace();
                 getInstance().close();
                 return false;
-            }
-            finally {
+            } finally {
                 getInstance().close();
             }
         }
@@ -609,6 +651,152 @@ public class DatabaseCommunication {
                 e.printStackTrace();
                 getInstance().close();
                 return false;
+            }
+        }
+
+        public static boolean resetToAllContractToPending() {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                String query = """
+                        update dbo.CONTRACTS
+                            set status = 'PENDING'
+                            where is_expired = 0""";
+
+                getInstance().conn.createStatement().execute(query);
+                return true;
+            } catch (Exception e) {
+                e.printStackTrace();
+
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static String acceptAllContractPhantom2Error(HashMap<String, Contract> hm) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                String query = USP.employee.acceptAllContractPhantom2Error();
+
+                CallableStatement cstmt = getInstance().conn.prepareCall(query);
+                System.out.println(query);
+
+                // Execute the CALL statement and expecting multiple result sets
+
+                int before = 0;
+
+                boolean isResultSet = cstmt.execute();
+
+                // get before
+                if (isResultSet) {
+                    ResultSet rs = cstmt.getResultSet();
+
+                    while (rs.next()) {
+                        before = rs.getInt("number_contract_accepted");
+                    }
+                    rs.close();
+                }
+
+                isResultSet = cstmt.getMoreResults();
+                int counter = 0;
+                isResultSet = cstmt.getMoreResults();
+                // get rs
+                if (isResultSet) {
+                    ResultSet rs = cstmt.getResultSet();
+                    while (rs.next()) {
+                        String CID = rs.getString("CID");
+                        Contract c = new Contract();
+                        c.setCID(CID);
+
+                        hm.put(CID, c);
+                    }
+                    int after = hm.size();
+                    if (after > before) {
+                        throw new IndexOutOfBoundsException("Có lỗi phantom.\nBắt đầu duyệt: " + before + ", Đã duyệt: " + after);
+                    }
+                    rs.close();
+                }
+
+
+                return "success";
+            } catch (IndexOutOfBoundsException e) {
+                e.printStackTrace();
+
+                return e.getMessage();
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                return "sqlErr";
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static String acceptAllContractPhantom2Fixed(HashMap<String, Contract> hm) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                String query = USP.employee.acceptAllContractPhantom2Fixed();
+
+                CallableStatement cstmt = getInstance().conn.prepareCall(query);
+                System.out.println(query);
+
+                // Execute the CALL statement and expecting multiple result sets
+
+                int before = 0;
+
+                boolean isResultSet = cstmt.execute();
+
+                // get before
+                if (isResultSet) {
+                    ResultSet rs = cstmt.getResultSet();
+
+                    while (rs.next()) {
+                        before = rs.getInt("number_contract_accepted");
+                    }
+                    rs.close();
+                }
+
+                isResultSet = cstmt.getMoreResults();
+                int counter = 0;
+                isResultSet = cstmt.getMoreResults();
+                // get rs
+                if (isResultSet) {
+                    ResultSet rs = cstmt.getResultSet();
+                    while (rs.next()) {
+                        String CID = rs.getString("CID");
+                        Contract c = new Contract();
+                        c.setCID(CID);
+
+                        hm.put(CID, c);
+                    }
+                    int after = hm.size();
+                    if (after > before) {
+                        throw new IndexOutOfBoundsException("Có lỗi phantom.\nBắt đầu duyệt: " + before + ", Đã duyệt: " + after);
+                    }
+                    rs.close();
+                }
+
+
+                return "success";
+            } catch (IndexOutOfBoundsException e) {
+                e.printStackTrace();
+
+                return e.getMessage();
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                return "sqlErr";
+            } finally {
+                getInstance().close();
             }
         }
     }
@@ -891,7 +1079,7 @@ public class DatabaseCommunication {
             }
         }
 
-        public static boolean createOrderLostUpdate1ErrorT1(Order order, Cart cart){
+        public static boolean createOrderLostUpdate1ErrorT1(Order order, Cart cart) {
             try {
                 getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
 
@@ -914,7 +1102,7 @@ public class DatabaseCommunication {
             }
         }
 
-        public static boolean createOrderLostUpdate1ErrorT2(Order order, Cart cart){
+        public static boolean createOrderLostUpdate1ErrorT2(Order order, Cart cart) {
             try {
                 getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
 
@@ -931,6 +1119,143 @@ public class DatabaseCommunication {
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        // ----------------------------------
+        public static boolean createOrderLostUpdate1FixedT1(Order order, Cart cart) {
+            try {
+                Thread.sleep(5000);
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
+
+                getInstance().open();
+
+                String query = USP.customer.createOrderLostUpdate1FixedT1(order);
+
+                Statement statement = getInstance().conn.createStatement();
+                statement.execute(query);
+
+                query = USP.customer.deleteCart(cart);
+                statement.execute(query);
+
+                return true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static boolean createOrderLostUpdate1FixedT2(Order order, Cart cart) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("CUSTOMER");
+
+                getInstance().open();
+
+                String query = USP.customer.createOrderLostUpdate1FixedT2(order);
+
+                Statement statement = getInstance().conn.createStatement();
+                statement.execute(query);
+
+                query = USP.customer.deleteCart(cart);
+                statement.execute(query);
+                Thread.sleep(5000);
+                return true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        // ----------------------------------
+        public static boolean getOrders(Customer c, HashMap<String, Order> hm) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                Statement stmt = getInstance().conn.createStatement();
+                String query = USP.customer.getOrders(c);
+                System.out.println(query);
+                ResultSet rs = stmt.executeQuery(query);
+
+                hm.clear();
+                while (rs.next()) {
+                    Order o = new Order();
+
+                    o.setOrderID(rs.getString("order_id"));
+
+                    c.setName(rs.getString("name"));
+                    String pvCode = rs.getString("pv_code"), dtCode = rs.getString("dt_code"), wCode = rs.getString("w_code");
+                    c.setAddress(new Address(
+                            AdministrativeDivision.getInstance().getProvinceList().get(pvCode),
+                            AdministrativeDivision.getInstance().getDistrictList().get(dtCode),
+                            AdministrativeDivision.getInstance().getWardList().get(wCode),
+                            rs.getString("address_line")));
+                    o.setCustomer(c);
+
+                    o.setTotal(rs.getFloat("total"));
+                    o.setPaymentMethod(rs.getString("payment_method"));
+                    o.setDeliveryStatus(rs.getString("delivery_status"));
+                    o.setPaidStatus(rs.getString("paid_status"));
+
+                    hm.put(o.getOrderID(), o);
+                }
+
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static boolean updateOrderPMNRR2Error(Order o, String newPm) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                Statement stmt = getInstance().conn.createStatement();
+                String query = USP.customer.updateOrderPMNRR2Error(o, newPm);
+                System.out.println(query);
+                boolean res = stmt.execute(query);
+
+                return true;
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static boolean updateOrderPMNRR2Fixed(Order o, String newPm) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                Statement stmt = getInstance().conn.createStatement();
+                String query = USP.customer.updateOrderPMNRR2Fixed(o, newPm);
+                System.out.println(query);
+                boolean res = stmt.execute(query);
+
+                return true;
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+
                 return false;
             } finally {
                 getInstance().close();
@@ -1005,6 +1330,159 @@ public class DatabaseCommunication {
                 getInstance().close();
 
                 return false;
+            }
+        }
+    }
+
+    public static class driver {
+        public static boolean getOrdersInActiveArea(Driver driver, HashMap<String, Order> hm) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                Statement stmt = getInstance().conn.createStatement();
+                String query = USP.driver.getOrdersInActiveArea(driver);
+                System.out.println(query);
+                ResultSet rs = stmt.executeQuery(query);
+
+                hm.clear();
+                while (rs.next()) {
+                    Order o = new Order();
+
+                    o.setOrderID(rs.getString("order_id"));
+
+                    Customer c = new Customer();
+                    c.setName(rs.getString("name"));
+                    String pvCode = rs.getString("pv_code"), dtCode = rs.getString("dt_code"), wCode = rs.getString("w_code");
+                    c.setAddress(new Address(
+                            AdministrativeDivision.getInstance().getProvinceList().get(pvCode),
+                            AdministrativeDivision.getInstance().getDistrictList().get(dtCode),
+                            AdministrativeDivision.getInstance().getWardList().get(wCode),
+                            rs.getString("address_line")));
+                    o.setCustomer(c);
+
+                    o.setTotal(rs.getFloat("total"));
+                    o.setPaymentMethod(rs.getString("payment_method"));
+                    o.setDeliveryStatus(rs.getString("delivery_status"));
+                    o.setPaidStatus(rs.getString("paid_status"));
+
+                    hm.put(o.getOrderID(), o);
+                }
+
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                return false;
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static String receiveOrderNRR2Error(Driver d, Order in, Order out) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                Statement stmt = getInstance().conn.createStatement();
+                String query = USP.driver.receiveOrderNRR2Error(d, in);
+
+                CallableStatement cstmt = getInstance().conn.prepareCall(query);
+                System.out.println(query);
+
+                // Execute the CALL statement and expecting multiple result sets
+
+                boolean isResultSet = cstmt.execute();
+
+                // get before
+                if (isResultSet) {
+                    ResultSet rs = cstmt.getResultSet();
+
+                    while (rs.next()) {
+                        in.setOrderID(rs.getString("order_id"));
+                        in.setPaymentMethod(rs.getString("payment_method"));
+                    }
+                    rs.close();
+                }
+
+                isResultSet = cstmt.getMoreResults();
+                isResultSet = cstmt.getMoreResults();
+                if (isResultSet) {
+                    ResultSet rs = cstmt.getResultSet();
+
+                    while (rs.next()) {
+                        out.setOrderID(rs.getString("order_id"));
+                        out.setPaymentMethod(rs.getString("payment_method"));
+                    }
+                    rs.close();
+                }
+
+                if (!in.getPaymentMethod().equals(out.getPaymentMethod())) {
+                    throw new SQLException("nrr;Bắt đầu: " + in.getPaymentMethod() + " - Kết thúc: " + out.getPaymentMethod());
+                }
+
+                return "success";
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                return e.getMessage();
+            } finally {
+                getInstance().close();
+            }
+        }
+
+        public static String receiveOrderNRR2Fixed(Driver d, Order in, Order out) {
+            try {
+                getInstance().currentSQLLogin = getInstance().sqlLogins.get("SA");
+
+                getInstance().open();
+
+                Statement stmt = getInstance().conn.createStatement();
+                String query = USP.driver.receiveOrderNRR2Fixed(d, in);
+
+                CallableStatement cstmt = getInstance().conn.prepareCall(query);
+                System.out.println(query);
+
+                // Execute the CALL statement and expecting multiple result sets
+
+                boolean isResultSet = cstmt.execute();
+
+                // get before
+                if (isResultSet) {
+                    ResultSet rs = cstmt.getResultSet();
+
+                    while (rs.next()) {
+                        in.setOrderID(rs.getString("order_id"));
+                        in.setPaymentMethod(rs.getString("payment_method"));
+                    }
+                    rs.close();
+                }
+
+                isResultSet = cstmt.getMoreResults();
+                isResultSet = cstmt.getMoreResults();
+                if (isResultSet) {
+                    ResultSet rs = cstmt.getResultSet();
+
+                    while (rs.next()) {
+                        out.setOrderID(rs.getString("order_id"));
+                        out.setPaymentMethod(rs.getString("payment_method"));
+                    }
+                    rs.close();
+                }
+
+                if (!in.getPaymentMethod().equals(out.getPaymentMethod())) {
+                    throw new SQLException("nrr");
+                }
+
+                return "success";
+            } catch (SQLException e) {
+                e.printStackTrace();
+
+                return e.getMessage();
+            } finally {
+                getInstance().close();
             }
         }
     }
